@@ -3,7 +3,7 @@
  * Features:
  *  - GC=F (Gold), SI=F (Silver), USDINR=X, GOLDBEES.NS, SILVERBEES.NS
  *  - INR per gram = (USDprice × USDINR) ÷ 28.3 (oz to grams)
- *    NOTE: Standard Troy oz is 31.1035, but user requested 28.3 for this tracker.
+ *    NOTE: Conversion factor is set to 28.3g per ounce as requested by user.
  *  - 1D percentage = (current − chartPreviousClose) / chartPreviousClose × 100
  *  - MCX Gold/Silver Mini derived = same as INR/gram formula
  *  - 30s auto-refresh + live IST clock + countdown
@@ -22,7 +22,7 @@ const CFG = {
         { url: 'https://corsproxy.io/?', wraps: false }
     ],
     INTERVAL: 10000,   // 10 seconds — live feel
-    TROY_GRAMS: 28.3 // oz → grams (User requested 28.3)
+    GRAMS_PER_OZ: 28.3 // oz → grams (User requested 28.3)
 };
 
 /* ══════════════════════════════════════════════
@@ -367,11 +367,17 @@ function renderChange(rowEl, caretIcon, changeEl, pctEl, cur, prev, decimals = 2
 }
 
 function animateTo(el, target, dec = 2) {
-    const start = parseFloat(el.textContent.replace(/[^0-9.-]/g, '')) || 0;
-    if (Math.abs(start - target) < 0.001) { el.textContent = fmt(target, dec); return; }
+    if (target === undefined || target === null || isNaN(target)) return;
+    const startText = el.textContent.replace(/[^0-9.-]/g, '');
+    const start = parseFloat(startText) || 0;
 
-    // If it's the first load, skip animation for instant update
-    if (S.firstLoad) {
+    if (Math.abs(start - target) < 0.001) {
+        el.textContent = fmt(target, dec);
+        return;
+    }
+
+    // If it's the first load or we have no starting text, skip animation for instant update
+    if (S.firstLoad || !startText || startText === '') {
         el.textContent = fmt(target, dec);
         return;
     }
@@ -394,7 +400,7 @@ function renderUI() {
             EL.xauChange, EL.xauPct, S.xau.cur, S.xau.prev, 2);
         // INR per gram  = (Price_USD × USDINR) ÷ 28.3
         if (S.usdinr.cur) {
-            const inrGram = (S.xau.cur * S.usdinr.cur) / CFG.TROY_GRAMS;
+            const inrGram = (S.xau.cur * S.usdinr.cur) / CFG.GRAMS_PER_OZ;
             EL.xauInrGram.textContent = fmtInrGram(inrGram);
         }
     }
@@ -405,7 +411,7 @@ function renderUI() {
         renderChange(EL.xagChangeRow, EL.xagChangeRow.querySelector('.caret'),
             EL.xagChange, EL.xagPct, S.xag.cur, S.xag.prev, 2);
         if (S.usdinr.cur) {
-            const inrGram = (S.xag.cur * S.usdinr.cur) / CFG.TROY_GRAMS;
+            const inrGram = (S.xag.cur * S.usdinr.cur) / CFG.GRAMS_PER_OZ;
             EL.xagInrGram.textContent = fmtInrGram(inrGram);
         }
     }
@@ -439,7 +445,7 @@ function renderUI() {
 
         // Premium calculation
         if (S.xau.cur && S.usdinr.cur) {
-            const intlInr = (S.xau.cur * S.usdinr.cur) / CFG.TROY_GRAMS;
+            const intlInr = (S.xau.cur * S.usdinr.cur) / CFG.GRAMS_PER_OZ;
             const diff = S.inGold.cur - intlInr;
             const sign = diff >= 0 ? '+' : '';
             EL.goldPremium.textContent = `${sign}${fmt(diff, 0)} INR`;
@@ -453,7 +459,7 @@ function renderUI() {
             EL.insilverChange, EL.insilverPct, S.inSilver.cur, S.inSilver.prev, 0);
 
         if (S.xag.cur && S.usdinr.cur) {
-            const intlInr = (S.xag.cur * S.usdinr.cur) / CFG.TROY_GRAMS;
+            const intlInr = (S.xag.cur * S.usdinr.cur) / CFG.GRAMS_PER_OZ;
             const diff = S.inSilver.cur - intlInr;
             const sign = diff >= 0 ? '+' : '';
             EL.silverPremium.textContent = `${sign}${fmt(diff, 0)} INR`;
@@ -464,6 +470,41 @@ function renderUI() {
     // ── Gap Prediction ──
     renderGap(S.xau, S.goldBees, EL.expGold, EL.goldAnchor, EL.goldNow, EL.goldGapPct);
     renderGap(S.xag, S.silverBees, EL.expSilver, EL.silverAnchor, EL.silverNow, EL.silverGapPct);
+
+    // Save to cache
+    saveCache();
+}
+
+/* ══════════════════════════════════════════════
+   CACHE
+ ══════════════════════════════════════════════ */
+function saveCache() {
+    try {
+        localStorage.setItem('market_data', JSON.stringify({
+            xau: S.xau,
+            xag: S.xag,
+            usdinr: S.usdinr,
+            goldBees: S.goldBees,
+            silverBees: S.silverBees,
+            inGold: S.inGold,
+            inSilver: S.inSilver
+        }));
+    } catch (e) { }
+}
+
+function loadCache() {
+    try {
+        const data = JSON.parse(localStorage.getItem('market_data'));
+        if (data) {
+            // Restore values to state
+            Object.keys(data).forEach(k => {
+                if (S[k]) Object.assign(S[k], data[k]);
+            });
+            S.firstLoad = true;
+            renderUI();
+            S.firstLoad = false;
+        }
+    } catch (e) { }
 }
 
 function renderGap(usdState, beesState, expEl, anchorEl, nowEl, pctEl) {
@@ -493,6 +534,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     initTheme();
     startLiveClock();
     startCountdown();
+
+    loadCache(); // Load previous values for instant feel
 
     await fetchAll();
 
