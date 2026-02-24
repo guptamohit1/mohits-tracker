@@ -2,9 +2,8 @@
  * AurumTrack v2 — Main Application Logic
  * Features:
  *  - GC=F (Gold), SI=F (Silver), USDINR=X, GOLDBEES.NS, SILVERBEES.NS
- *  - INR per gram = (USDprice × USDINR) ÷ 31.1035 (troy oz to grams)
- *    NOTE: User formula uses ÷28.3 — we expose both but use 31.1035 for per-troy-oz accuracy.
- *    31.1035g = 1 troy oz (standard). User's ÷28.3 is also shown as a secondary.
+ *  - INR per gram = (USDprice × USDINR) ÷ 28.3 (oz to grams)
+ *    NOTE: Standard Troy oz is 31.1035, but user requested 28.3 for this tracker.
  *  - 1D percentage = (current − chartPreviousClose) / chartPreviousClose × 100
  *  - MCX Gold/Silver Mini derived = same as INR/gram formula
  *  - 30s auto-refresh + live IST clock + countdown
@@ -23,13 +22,14 @@ const CFG = {
         { url: 'https://corsproxy.io/?', wraps: false }
     ],
     INTERVAL: 10000,   // 10 seconds — live feel
-    TROY_GRAMS: 31.1035 // troy oz → grams
+    TROY_GRAMS: 28.3 // oz → grams (User requested 28.3)
 };
 
 /* ══════════════════════════════════════════════
    STATE
 ══════════════════════════════════════════════ */
 const S = {
+    firstLoad: true, // Track if it's the first render for instant load
     xau: { cur: 0, prev: 0, anchor1530: 0 },
     xag: { cur: 0, prev: 0, anchor1530: 0 },
     usdinr: { cur: 0, prev: 0 },
@@ -310,35 +310,44 @@ function processForex(raw) {
    FETCH ALL
 ══════════════════════════════════════════════ */
 async function fetchAll() {
-    const tasks = [
-        fetchYahoo('GC=F', '5m', '5d'),
-        fetchYahoo('SI=F', '5m', '5d'),
-        fetchYahoo('USDINR=X', '1d', '5d'),
-        fetchYahoo('GOLDBEES.NS', '1d', '5d'),
-        fetchYahoo('SILVERBEES.NS', '1d', '5d'),
-        fetchYahoo('IVZINGOLD.NS', '1d', '5d'),
-        fetchYahoo('SILVERIETF.NS', '1d', '5d')
+    const symbols = [
+        { sym: 'GC=F', interval: '5m', range: '5d', type: 'usd' },
+        { sym: 'SI=F', interval: '5m', range: '5d', type: 'usd' },
+        { sym: 'USDINR=X', interval: '1d', range: '5d', type: 'fx' },
+        { sym: 'GOLDBEES.NS', interval: '1d', range: '5d', type: 'bees' },
+        { sym: 'SILVERBEES.NS', interval: '1d', range: '5d', type: 'bees' },
+        { sym: 'IVZINGOLD.NS', interval: '1d', range: '5d', type: 'ingold' },
+        { sym: 'SILVERIETF.NS', interval: '1d', range: '5d', type: 'insilver' }
     ];
 
-    const [rGold, rSilver, rFX, rGB, rSB, rInG, rInS] = await Promise.all(tasks);
+    // Incremental loading: process each symbol as it returns
+    symbols.forEach(async (item) => {
+        try {
+            const raw = await fetchYahoo(item.sym, item.interval, item.range);
+            if (!raw) return;
 
-    if (rGold) processUSD('GC=F', rGold);
-    if (rSilver) processUSD('SI=F', rSilver);
-    if (rFX) processForex(rFX);
-    if (rGB) processBees('GOLDBEES.NS', rGB);
-    if (rSB) processBees('SILVERBEES.NS', rSB);
+            if (item.type === 'usd') processUSD(item.sym, raw);
+            else if (item.type === 'fx') processForex(raw);
+            else if (item.type === 'bees') processBees(item.sym, raw);
+            else if (item.type === 'ingold') {
+                S.inGold.cur = raw.meta.regularMarketPrice ?? 0;
+                S.inGold.prev = raw.meta.chartPreviousClose ?? 0;
+            }
+            else if (item.type === 'insilver') {
+                S.inSilver.cur = raw.meta.regularMarketPrice ?? 0;
+                S.inSilver.prev = raw.meta.chartPreviousClose ?? 0;
+            }
 
-    if (rInG) {
-        S.inGold.cur = rInG.meta.regularMarketPrice ?? 0;
-        S.inGold.prev = rInG.meta.chartPreviousClose ?? 0;
-    }
-    if (rInS) {
-        S.inSilver.cur = rInS.meta.regularMarketPrice ?? 0;
-        S.inSilver.prev = rInS.meta.chartPreviousClose ?? 0;
-    }
+            renderUI();
+            EL.lastUpdated.textContent = istString(istNow());
+        } catch (e) {
+            console.error(`[AurumTrack] Error fetching ${item.sym}:`, e);
+        }
+    });
 
-    renderUI();
-    EL.lastUpdated.textContent = istString(istNow());
+    // After first batch of triggers, mark firstLoad as false after a short delay
+    // to allow initial values to "snap" into place without duration
+    setTimeout(() => { S.firstLoad = false; }, 2000);
 }
 
 /* ══════════════════════════════════════════════
@@ -360,6 +369,13 @@ function renderChange(rowEl, caretIcon, changeEl, pctEl, cur, prev, decimals = 2
 function animateTo(el, target, dec = 2) {
     const start = parseFloat(el.textContent.replace(/[^0-9.-]/g, '')) || 0;
     if (Math.abs(start - target) < 0.001) { el.textContent = fmt(target, dec); return; }
+
+    // If it's the first load, skip animation for instant update
+    if (S.firstLoad) {
+        el.textContent = fmt(target, dec);
+        return;
+    }
+
     const dur = 800, t0 = performance.now();
     function step(now) {
         const p = Math.min((now - t0) / dur, 1);
@@ -376,7 +392,7 @@ function renderUI() {
         animateTo(EL.xauPrice, S.xau.cur, 2);
         renderChange(EL.xauChangeRow, EL.xauChangeRow.querySelector('.caret'),
             EL.xauChange, EL.xauPct, S.xau.cur, S.xau.prev, 2);
-        // INR per gram  = (Price_USD × USDINR) ÷ 31.1035
+        // INR per gram  = (Price_USD × USDINR) ÷ 28.3
         if (S.usdinr.cur) {
             const inrGram = (S.xau.cur * S.usdinr.cur) / CFG.TROY_GRAMS;
             EL.xauInrGram.textContent = fmtInrGram(inrGram);
