@@ -561,6 +561,24 @@ html[data-theme="dark"] .orb {
     margin-bottom: 16px;
 }
 
+.market-open-msg {
+    display: none;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--up);
+    text-align: center;
+    padding: 20px 0;
+}
+
+.card-prediction.market-open .gap-table,
+.card-prediction.market-open .prediction-price {
+    display: none;
+}
+
+.card-prediction.market-open .market-open-msg {
+    display: block;
+}
+
 .gap-table {
     display: flex;
     flex-direction: column;

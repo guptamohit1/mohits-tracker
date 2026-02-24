@@ -92,6 +92,8 @@ const EL = {
     silverAnchor: document.getElementById('silver-anchor'),
     silverNow: document.getElementById('silver-now'),
     silverGapPct: document.getElementById('silver-gap-pct'),
+    goldGapCard: document.getElementById('gold-gap-card'),
+    silverGapCard: document.getElementById('silver-gap-card'),
 
     // Theme
     html: document.documentElement,
@@ -130,6 +132,17 @@ function istString(d) {
     const ss = String(d.getSeconds()).padStart(2, '0');
     return `${hh}:${mm}:${ss}`;
 }
+
+/**
+ * Returns true if NSE market is currently in session (09:15 - 15:30 IST, Mon-Fri).
+ */
+function isNseOpen() {
+    const ist = istNow();
+    const d = ist.getDay();
+    const min = ist.getHours() * 60 + ist.getMinutes();
+    return (d >= 1 && d <= 5) && (min >= 555 && min < 930); // 555m = 09:15, 930m = 15:30
+}
+
 
 /* ══════════════════════════════════════════════
    THEME
@@ -454,6 +467,16 @@ function loadCache() {
 }
 
 function renderGap(usdState, beesState, expEl, anchorEl, nowEl, pctEl) {
+    // Determine card element for toggle
+    const card = expEl.closest('.card-prediction');
+
+    // Rule: Before 3:30 PM IST on weekdays, show "Markets are open"
+    if (isNseOpen()) {
+        card.classList.add('market-open');
+        return;
+    }
+    card.classList.remove('market-open');
+
     if (!usdState.cur || !usdState.anchor1530 || !beesState.cur) return;
 
     const diffPct = (usdState.cur - usdState.anchor1530) / usdState.anchor1530;
