@@ -34,9 +34,7 @@ const S = {
     xag: { cur: 0, prev: 0, anchor1530: 0 },
     usdinr: { cur: 0, prev: 0 },
     goldBees: { cur: 0, prev: 0 },
-    silverBees: { cur: 0, prev: 0 },
-    inGold: { cur: 0, prev: 0 },   // IVZINGOLD.NS  — real India gold price per gram
-    inSilver: { cur: 0, prev: 0 }  // SILVERIETF.NS — real India silver price per gram
+    silverBees: { cur: 0, prev: 0 }
 };
 
 /* ══════════════════════════════════════════════
@@ -81,17 +79,7 @@ const EL = {
     sbChange: document.getElementById('silverbees-change'),
     sbPct: document.getElementById('silverbees-pct'),
 
-    // India prices
-    ingoldPrice: document.getElementById('ingold-price'),
-    ingoldChangeRow: document.getElementById('ingold-change-row'),
-    ingoldChange: document.getElementById('ingold-change'),
-    ingoldPct: document.getElementById('ingold-pct'),
-    goldPremium: document.getElementById('gold-premium'),
-    insilverPrice: document.getElementById('insilver-price'),
-    insilverChangeRow: document.getElementById('insilver-change-row'),
-    insilverChange: document.getElementById('insilver-change'),
-    insilverPct: document.getElementById('insilver-pct'),
-    silverPremium: document.getElementById('silver-premium'),
+    silverBeesPct: document.getElementById('silverbees-pct'),
 
     // Gap prediction - Gold
     expGold: document.getElementById('expected-goldbees'),
@@ -315,9 +303,7 @@ async function fetchAll() {
         { sym: 'SI=F', interval: '5m', range: '5d', type: 'usd' },
         { sym: 'USDINR=X', interval: '1d', range: '5d', type: 'fx' },
         { sym: 'GOLDBEES.NS', interval: '1d', range: '5d', type: 'bees' },
-        { sym: 'SILVERBEES.NS', interval: '1d', range: '5d', type: 'bees' },
-        { sym: 'IVZINGOLD.NS', interval: '1d', range: '5d', type: 'ingold' },
-        { sym: 'SILVERIETF.NS', interval: '1d', range: '5d', type: 'insilver' }
+        { sym: 'SILVERBEES.NS', interval: '1d', range: '5d', type: 'bees' }
     ];
 
     // Incremental loading: process each symbol as it returns
@@ -329,14 +315,6 @@ async function fetchAll() {
             if (item.type === 'usd') processUSD(item.sym, raw);
             else if (item.type === 'fx') processForex(raw);
             else if (item.type === 'bees') processBees(item.sym, raw);
-            else if (item.type === 'ingold') {
-                S.inGold.cur = raw.meta.regularMarketPrice ?? 0;
-                S.inGold.prev = raw.meta.chartPreviousClose ?? 0;
-            }
-            else if (item.type === 'insilver') {
-                S.inSilver.cur = raw.meta.regularMarketPrice ?? 0;
-                S.inSilver.prev = raw.meta.chartPreviousClose ?? 0;
-            }
 
             renderUI();
             EL.lastUpdated.textContent = istString(istNow());
@@ -437,36 +415,6 @@ function renderUI() {
             EL.sbChange, EL.sbPct, S.silverBees.cur, S.silverBees.prev, 2);
     }
 
-    // ── India Market prices ──
-    if (S.inGold.cur) {
-        animateTo(EL.ingoldPrice, S.inGold.cur, 0);
-        renderChange(EL.ingoldChangeRow, EL.ingoldChangeRow.querySelector('.caret'),
-            EL.ingoldChange, EL.ingoldPct, S.inGold.cur, S.inGold.prev, 2);
-
-        // Premium calculation
-        if (S.xau.cur && S.usdinr.cur) {
-            const intlInr = (S.xau.cur * S.usdinr.cur) / CFG.GRAMS_PER_OZ;
-            const diff = S.inGold.cur - intlInr;
-            const sign = diff >= 0 ? '+' : '';
-            EL.goldPremium.textContent = `${sign}${fmt(diff, 0)} INR`;
-            EL.goldPremium.className = `inr-gram-value premium ${diff >= 0 ? 'up' : 'down'}`;
-        }
-    }
-
-    if (S.inSilver.cur) {
-        animateTo(EL.insilverPrice, S.inSilver.cur, 0);
-        renderChange(EL.insilverChangeRow, EL.insilverChangeRow.querySelector('.caret'),
-            EL.insilverChange, EL.insilverPct, S.inSilver.cur, S.inSilver.prev, 0);
-
-        if (S.xag.cur && S.usdinr.cur) {
-            const intlInr = (S.xag.cur * S.usdinr.cur) / CFG.GRAMS_PER_OZ;
-            const diff = S.inSilver.cur - intlInr;
-            const sign = diff >= 0 ? '+' : '';
-            EL.silverPremium.textContent = `${sign}${fmt(diff, 0)} INR`;
-            EL.silverPremium.className = `inr-gram-value premium ${diff >= 0 ? 'up' : 'down'}`;
-        }
-    }
-
     // ── Gap Prediction ──
     renderGap(S.xau, S.goldBees, EL.expGold, EL.goldAnchor, EL.goldNow, EL.goldGapPct);
     renderGap(S.xag, S.silverBees, EL.expSilver, EL.silverAnchor, EL.silverNow, EL.silverGapPct);
@@ -485,9 +433,7 @@ function saveCache() {
             xag: S.xag,
             usdinr: S.usdinr,
             goldBees: S.goldBees,
-            silverBees: S.silverBees,
-            inGold: S.inGold,
-            inSilver: S.inSilver
+            silverBees: S.silverBees
         }));
     } catch (e) { }
 }
