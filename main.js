@@ -21,7 +21,7 @@ const CFG = {
         { url: 'https://api.allorigins.win/get?url=', wraps: true },
         { url: 'https://corsproxy.io/?', wraps: false }
     ],
-    INTERVAL: 10000,   // 10 seconds — live feel
+    INTERVAL: 5000,    // 5 seconds — more aggressive for live feel
     GRAMS_PER_OZ: 28.3 // oz → grams (User requested 28.3)
 };
 
@@ -211,21 +211,23 @@ function resetCountdown() {
    FETCH
 ══════════════════════════════════════════════ */
 async function fetchYahoo(symbol, interval = '5m', range = '5d') {
-    const url = `${CFG.API}${symbol}?interval=${interval}&range=${range}`;
+    // Add cache-buster to URL
+    const url = `${CFG.API}${symbol}?interval=${interval}&range=${range}&_=${Date.now()}`;
 
     // Try direct
     try {
-        const r = await fetch(url);
+        const r = await fetch(url, { cache: 'no-store' });
         if (!r.ok) throw new Error('status ' + r.status);
         const d = await r.json();
         if (d.chart?.result?.[0]) return d.chart.result[0];
         throw new Error('no result');
     } catch (e) { /* silent */ }
 
-    // Try proxies
+    // Try proxies with cache busting
     for (const p of CFG.PROXIES) {
         try {
-            const r = await fetch(p.url + encodeURIComponent(url));
+            const proxyUrl = p.url + encodeURIComponent(url);
+            const r = await fetch(proxyUrl, { cache: 'no-store' });
             if (!r.ok) throw new Error('status ' + r.status);
             let d;
             if (p.wraps) {
@@ -257,45 +259,41 @@ function lastValid(arr) {
  * Scans within ±15 minutes of 10:00 UTC, returns the closest valid close.
  */
 function findAnchor1530(timestamps, closes) {
-    // 09:45–10:15 UTC window (15:15–15:45 IST) — wide bracket
-    const TARGET_UTC = 10 * 60; // 10:00 UTC in minutes
-    let bestGap = Infinity, bestPrice = null;
+    const TARGET_UTC = 10 * 60; // 10:00 UTC = 15:30 IST
 
+    // Scan backwards for the first day that has a candle near 15:30 IST
     for (let i = timestamps.length - 1; i >= 0; i--) {
         if (closes[i] === null || closes[i] === undefined) continue;
         const d = new Date(timestamps[i] * 1000);
-        const dsn = d.getUTCDate() * 1440 + d.getUTCHours() * 60 + d.getUTCMinutes();
-
-        // Re-normalise to per-day: check only hours 9-11 UTC
         const utcH = d.getUTCHours();
         const utcM = d.getUTCMinutes();
-        if (utcH < 9 || utcH > 11) continue;
 
         const candleMin = utcH * 60 + utcM;
-        const gap = Math.abs(candleMin - TARGET_UTC);
-        if (gap < bestGap && gap <= 20) { // within 20 mins
-            bestGap = gap;
-            bestPrice = closes[i];
+        // Check if this candle is within 5 minutes of 15:30 IST (10:00 UTC)
+        // AND it's not currently in the future (if the API returns projected/delayed data)
+        if (Math.abs(candleMin - TARGET_UTC) <= 5) {
+            return closes[i]; // Found the most recent anchor
         }
     }
-    return bestPrice; // may be null on weekends/holidays
+    return null;
 }
 
 function processUSD(sym, raw) {
     const closes = raw.indicators.quote[0].close;
     const timestamps = raw.timestamp;
-    const prev = raw.meta.chartPreviousClose ?? raw.meta.previousClose;
+    // Prefer regularMarketPreviousClose for percentage matching
+    const prev = raw.meta.regularMarketPreviousClose ?? raw.meta.previousClose ?? raw.meta.chartPreviousClose;
     const cur = raw.meta.regularMarketPrice ?? lastValid(closes);
 
     const obj = sym === 'GC=F' ? S.xau : S.xag;
     obj.cur = cur;
     obj.prev = prev;
     obj.anchor1530 = findAnchor1530(timestamps, closes) ?? prev;
-    console.log(`[AurumTrack] ${sym} cur=$${cur} prev=$${prev} anchor1530=$${obj.anchor1530}`);
+    console.log(`[AurumTrack] ${sym} cur=$${cur} prev=$${prev} (matched for pct)`);
 }
 
 function processBees(sym, raw) {
-    const prev = raw.meta.chartPreviousClose ?? raw.meta.previousClose;
+    const prev = raw.meta.regularMarketPreviousClose ?? raw.meta.previousClose ?? raw.meta.chartPreviousClose;
     const cur = raw.meta.regularMarketPrice ?? lastValid(raw.indicators.quote[0].close);
     const obj = sym === 'GOLDBEES.NS' ? S.goldBees : S.silverBees;
     obj.cur = cur;
@@ -304,7 +302,7 @@ function processBees(sym, raw) {
 
 function processForex(raw) {
     S.usdinr.cur = raw.meta.regularMarketPrice ?? 0;
-    S.usdinr.prev = raw.meta.chartPreviousClose ?? 0;
+    S.usdinr.prev = raw.meta.regularMarketPreviousClose ?? raw.meta.previousClose ?? raw.meta.chartPreviousClose ?? 0;
 }
 
 /* ══════════════════════════════════════════════
@@ -312,11 +310,11 @@ function processForex(raw) {
 ══════════════════════════════════════════════ */
 async function fetchAll() {
     const symbols = [
-        { sym: 'GC=F', interval: '5m', range: '5d', type: 'usd' },
-        { sym: 'SI=F', interval: '5m', range: '5d', type: 'usd' },
-        { sym: 'USDINR=X', interval: '1d', range: '5d', type: 'fx' },
-        { sym: 'GOLDBEES.NS', interval: '1d', range: '5d', type: 'bees' },
-        { sym: 'SILVERBEES.NS', interval: '1d', range: '5d', type: 'bees' }
+        { sym: 'GC=F', interval: '1m', range: '5d', type: 'usd' },
+        { sym: 'SI=F', interval: '1m', range: '5d', type: 'usd' },
+        { sym: 'USDINR=X', interval: '1m', range: '5d', type: 'fx' },
+        { sym: 'GOLDBEES.NS', interval: '1m', range: '5d', type: 'bees' },
+        { sym: 'SILVERBEES.NS', interval: '1m', range: '5d', type: 'bees' }
     ];
 
     // Incremental loading: process each symbol as it returns
@@ -338,7 +336,7 @@ async function fetchAll() {
 
     // After first batch of triggers, mark firstLoad as false after a short delay
     // to allow initial values to "snap" into place without duration
-    setTimeout(() => { S.firstLoad = false; }, 2000);
+    setTimeout(() => { S.firstLoad = false; }, 3000);
 }
 
 /* ══════════════════════════════════════════════
