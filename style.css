@@ -46,6 +46,9 @@ html[data-theme="dark"] {
     --navbar-bg: rgba(0, 0, 0, 0.80);
     --shadow: rgba(0, 0, 0, 0.6);
 }
+.source-toggle {
+    background: rgba(255, 255, 255, 0.04);
+}
 
 /* ── Reset ── */
 *,
@@ -143,6 +146,48 @@ html[data-theme="dark"] .orb {
     -webkit-backdrop-filter: blur(24px);
     border-bottom: 1px solid var(--border);
     transition: background .4s;
+}
+.nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+.source-toggle {
+    display: flex;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 30px;
+    padding: 3px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+.source-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border: none;
+    background: transparent;
+    color: var(--text-3);
+    padding: 6px 14px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.source-btn i {
+    font-size: 0.7rem;
+}
+.source-btn.active {
+    background: var(--gold);
+    color: #fff;
+}
+.source-btn:not(.active):hover {
+    color: var(--text-1);
+}
+#data-source-badge {
+    color: var(--gold);
+    font-weight: 800;
+    font-size: 0.62rem;
+    border-color: var(--gold-glow);
 }
 
 .logo {

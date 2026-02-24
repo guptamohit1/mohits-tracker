@@ -26,9 +26,21 @@
             <i class="fa-solid fa-gem"></i>
             <span>Mohit's Tracker</span>
         </a>
-        <button id="theme-toggle" class="btn-icon" aria-label="Toggle theme">
-            <i class="fa-solid fa-moon" id="theme-icon"></i>
-        </button>
+        <div class="nav-actions">
+            <div class="source-toggle" id="source-toggle">
+                <button class="source-btn active" data-source="yahoo" title="Source: Yahoo Finance">
+                    <i class="fa-solid fa-y"></i>
+                    <span>Yahoo</span>
+                </button>
+                <button class="source-btn" data-source="tradingview" title="Source: TradingView Scanner">
+                    <i class="fa-solid fa-chart-line"></i>
+                    <span>TradingView</span>
+                </button>
+            </div>
+            <button id="theme-toggle" class="btn-icon" aria-label="Toggle theme">
+                <i class="fa-solid fa-moon" id="theme-icon"></i>
+            </button>
+        </div>
     </nav>
 
     <!-- ─── Live Status Bar ─── -->
@@ -73,7 +85,7 @@
                         <div class="asset-icon gold"><i class="fa-solid fa-coins"></i></div>
                         <div>
                             <div class="asset-name">Gold</div>
-                            <div class="asset-sub">COMEX · GC=F</div>
+                            <div class="asset-sub"><span class="source-label">COMEX · GC=F</span></div>
                         </div>
                         <div class="badge">USD</div>
                     </div>
@@ -99,7 +111,7 @@
                         <div class="asset-icon silver"><i class="fa-solid fa-coins"></i></div>
                         <div>
                             <div class="asset-name">Silver</div>
-                            <div class="asset-sub">COMEX · SI=F</div>
+                            <div class="asset-sub"><span class="source-label">COMEX · SI=F</span></div>
                         </div>
                         <div class="badge">USD</div>
                     </div>
@@ -124,7 +136,7 @@
                         <div class="asset-icon fx"><i class="fa-solid fa-arrow-right-arrow-left"></i></div>
                         <div>
                             <div class="asset-name">USD / INR</div>
-                            <div class="asset-sub">Forex pair</div>
+                            <div class="asset-sub"><span class="source-label">Forex pair</span></div>
                         </div>
                     </div>
                     <div class="card-price">
@@ -153,7 +165,7 @@
                         <div class="asset-icon gold"><i class="fa-solid fa-box-archive"></i></div>
                         <div>
                             <div class="asset-name">Gold BeES</div>
-                            <div class="asset-sub">GOLDBEES.NS · Nippon</div>
+                            <div class="asset-sub"><span class="source-label">GOLDBEES.NS · Nippon</span></div>
                         </div>
                         <div class="badge">ETF</div>
                     </div>
@@ -175,7 +187,7 @@
                         <div class="asset-icon silver"><i class="fa-solid fa-box-archive"></i></div>
                         <div>
                             <div class="asset-name">Silver BeES</div>
-                            <div class="asset-sub">SILVERBEES.NS · Mirae</div>
+                            <div class="asset-sub"><span class="source-label">SILVERBEES.NS · Mirae</span></div>
                         </div>
                         <div class="badge">ETF</div>
                     </div>

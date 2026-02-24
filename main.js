@@ -17,6 +17,7 @@
 ══════════════════════════════════════════════ */
 const CFG = {
     API: 'https://query1.finance.yahoo.com/v8/finance/chart/',
+    TV_API: 'https://scanner.tradingview.com/',
     PROXIES: [
         { url: 'https://api.allorigins.win/get?url=', wraps: true },
         { url: 'https://corsproxy.io/?', wraps: false }
@@ -30,6 +31,7 @@ const CFG = {
 ══════════════════════════════════════════════ */
 const S = {
     firstLoad: true, // Track if it's the first render for instant load
+    source: 'yahoo', // 'yahoo' or 'tradingview'
     xau: { cur: 0, prev: 0, anchor1530: 0 },
     xag: { cur: 0, prev: 0, anchor1530: 0 },
     usdinr: { cur: 0, prev: 0 },
@@ -98,7 +100,10 @@ const EL = {
     // Theme
     html: document.documentElement,
     themeIcon: document.getElementById('theme-icon'),
-    themeBtn: document.getElementById('theme-toggle')
+    themeBtn: document.getElementById('theme-toggle'),
+
+    // Source Toggle
+    sourceToggle: document.getElementById('source-toggle')
 };
 
 /* ══════════════════════════════════════════════
@@ -240,8 +245,28 @@ async function fetchYahoo(symbol, interval = '5m', range = '5d') {
         } catch (e) { /* try next */ }
     }
 
-    console.error('[AurumTrack] All fetches failed for', symbol);
+    console.error('[AurumTrack] All Yahoo fetches failed for', symbol);
     return null;
+}
+
+async function fetchTradingView(market, tickers) {
+    const url = `${CFG.TV_API}${market}/scan`;
+    const body = {
+        symbols: { tickers },
+        columns: ["close", "change", "change_abs", "name"]
+    };
+
+    try {
+        const r = await fetch(url, {
+            method: 'POST',
+            body: JSON.stringify(body)
+        });
+        if (!r.ok) throw new Error('TV status ' + r.status);
+        return await r.json();
+    } catch (e) {
+        console.error(`[AurumTrack] TradingView fetch failed for ${market}:`, e);
+        return null;
+    }
 }
 
 /* ══════════════════════════════════════════════
@@ -305,37 +330,62 @@ function processForex(raw) {
     S.usdinr.prev = raw.meta.regularMarketPreviousClose ?? raw.meta.previousClose ?? raw.meta.chartPreviousClose ?? 0;
 }
 
+function processTVData(res) {
+    if (!res?.data) return;
+    res.data.forEach(item => {
+        const [cur, pct, diff] = item.d;
+        // TradingView change is already absolute diff, pct is percentage
+        // To match Yahoo, we "derive" a prev close
+        const prev = cur - diff;
+
+        if (item.s === 'TVC:GOLD') { S.xau.cur = cur; S.xau.prev = prev; }
+        else if (item.s === 'TVC:SILVER') { S.xag.cur = cur; S.xag.prev = prev; }
+        else if (item.s === 'FX_IDC:USDINR') { S.usdinr.cur = cur; S.usdinr.prev = prev; }
+        else if (item.s === 'NSE:GOLDBEES') { S.goldBees.cur = cur; S.goldBees.prev = prev; }
+        else if (item.s === 'NSE:SILVERBEES') { S.silverBees.cur = cur; S.silverBees.prev = prev; }
+    });
+}
+
 /* ══════════════════════════════════════════════
    FETCH ALL
 ══════════════════════════════════════════════ */
 async function fetchAll() {
-    const symbols = [
-        { sym: 'GC=F', interval: '1m', range: '5d', type: 'usd' },
-        { sym: 'SI=F', interval: '1m', range: '5d', type: 'usd' },
-        { sym: 'USDINR=X', interval: '1m', range: '5d', type: 'fx' },
-        { sym: 'GOLDBEES.NS', interval: '1m', range: '5d', type: 'bees' },
-        { sym: 'SILVERBEES.NS', interval: '1m', range: '5d', type: 'bees' }
-    ];
+    if (S.source === 'yahoo') {
+        const symbols = [
+            { sym: 'GC=F', interval: '1m', range: '5d', type: 'usd' },
+            { sym: 'SI=F', interval: '1m', range: '5d', type: 'usd' },
+            { sym: 'USDINR=X', interval: '1m', range: '5d', type: 'fx' },
+            { sym: 'GOLDBEES.NS', interval: '1m', range: '5d', type: 'bees' },
+            { sym: 'SILVERBEES.NS', interval: '1m', range: '5d', type: 'bees' }
+        ];
 
-    // Incremental loading: process each symbol as it returns
-    symbols.forEach(async (item) => {
-        try {
-            const raw = await fetchYahoo(item.sym, item.interval, item.range);
-            if (!raw) return;
+        symbols.forEach(async (item) => {
+            try {
+                const raw = await fetchYahoo(item.sym, item.interval, item.range);
+                if (!raw) return;
+                if (item.type === 'usd') processUSD(item.sym, raw);
+                else if (item.type === 'fx') processForex(raw);
+                else if (item.type === 'bees') processBees(item.sym, raw);
+                renderUI();
+                EL.lastUpdated.textContent = istString(istNow());
+            } catch (e) { console.error(`[AurumTrack] Error fetching ${item.sym}:`, e); }
+        });
+    } else {
+        // TradingView Scanning (3 separate calls for markets)
+        const tvRequests = [
+            { m: 'india', t: ["NSE:GOLDBEES", "NSE:SILVERBEES"] },
+            { m: 'cfd', t: ["TVC:GOLD", "TVC:SILVER"] },
+            { m: 'forex', t: ["FX_IDC:USDINR"] }
+        ];
 
-            if (item.type === 'usd') processUSD(item.sym, raw);
-            else if (item.type === 'fx') processForex(raw);
-            else if (item.type === 'bees') processBees(item.sym, raw);
-
-            renderUI();
-            EL.lastUpdated.textContent = istString(istNow());
-        } catch (e) {
-            console.error(`[AurumTrack] Error fetching ${item.sym}:`, e);
+        for (const req of tvRequests) {
+            const res = await fetchTradingView(req.m, req.t);
+            if (res) processTVData(res);
         }
-    });
+        renderUI();
+        EL.lastUpdated.textContent = istString(istNow());
+    }
 
-    // After first batch of triggers, mark firstLoad as false after a short delay
-    // to allow initial values to "snap" into place without duration
     setTimeout(() => { S.firstLoad = false; }, 3000);
 }
 
@@ -430,6 +480,43 @@ function renderUI() {
     renderGap(S.xau, S.goldBees, EL.expGold, EL.goldAnchor, EL.goldNow, EL.goldGapPct);
     renderGap(S.xag, S.silverBees, EL.expSilver, EL.silverAnchor, EL.silverNow, EL.silverGapPct);
 
+    // Update Source Labels and Badges
+    const labels = document.querySelectorAll('.source-label');
+    const isTV = S.source === 'tradingview';
+    const mapping = isTV ? {
+        'xau-price': 'TVC:GOLD',
+        'xag-price': 'TVC:SILVER',
+        'usdinr-price': 'FX_IDC:USDINR',
+        'goldbees-price': 'NSE:GOLDBEES',
+        'silverbees-price': 'NSE:SILVERBEES'
+    } : {
+        'xau-price': 'COMEX · GC=F',
+        'xag-price': 'COMEX · SI=F',
+        'usdinr-price': 'Forex pair',
+        'goldbees-price': 'GOLDBEES.NS · Nippon',
+        'silverbees-price': 'SILVERBEES.NS · Mirae'
+    };
+
+    Object.keys(mapping).forEach(id => {
+        const card = document.getElementById(id)?.closest('.card');
+        if (card) {
+            const label = card.querySelector('.source-label');
+            if (label) label.textContent = mapping[id];
+
+            // Highlight TV badge if active
+            const badge = card.querySelector('.badge');
+            if (badge) {
+                if (isTV) {
+                    badge.textContent = 'TV';
+                    badge.classList.add('badge-derived');
+                } else {
+                    badge.textContent = id.includes('bees') ? 'ETF' : (id.includes('inr') ? 'INR' : 'USD');
+                    badge.classList.remove('badge-derived');
+                }
+            }
+        }
+    });
+
     // Save to cache
     saveCache();
 }
@@ -497,8 +584,46 @@ function renderGap(usdState, beesState, expEl, anchorEl, nowEl, pctEl) {
 /* ══════════════════════════════════════════════
    BOOTSTRAP
 ══════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════
+   SOURCE TOGGLE
+══════════════════════════════════════════════ */
+function initSourceToggle() {
+    const btns = EL.sourceToggle.querySelectorAll('.source-btn');
+    btns.forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const src = btn.getAttribute('data-source');
+            if (src === S.source) return;
+
+            // UI update
+            btns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            // State update
+            S.source = src;
+            localStorage.setItem('data_source', src);
+
+            // Instant refresh
+            resetCountdown();
+            await fetchAll();
+        });
+    });
+
+    // Load saved preference
+    const saved = localStorage.getItem('data_source');
+    if (saved && (saved === 'yahoo' || saved === 'tradingview')) {
+        S.source = saved;
+        btns.forEach(b => {
+            b.classList.toggle('active', b.getAttribute('data-source') === saved);
+        });
+    }
+}
+
+/* ══════════════════════════════════════════════
+   BOOTSTRAP
+══════════════════════════════════════════════ */
 document.addEventListener('DOMContentLoaded', async () => {
     initTheme();
+    initSourceToggle();
     startLiveClock();
     startCountdown();
 
