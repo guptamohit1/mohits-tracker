@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mohit's Tracker — Metals & BeES Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css?v=20260224">
+</head>
+
+<body>
+
+    <!-- Ambient background orbs -->
+    <div class="bg-orbs" aria-hidden="true">
+        <div class="orb orb-gold"></div>
+        <div class="orb orb-silver"></div>
+    </div>
+
+    <!-- ─── Navbar ─── -->
+    <nav class="navbar">
+        <a class="logo" href="#">
+            <i class="fa-solid fa-gem"></i>
+            <span>Mohit's Tracker</span>
+        </a>
+        <button id="theme-toggle" class="btn-icon" aria-label="Toggle theme">
+            <i class="fa-solid fa-moon" id="theme-icon"></i>
+        </button>
+    </nav>
+
+    <!-- ─── Live Status Bar ─── -->
+    <div class="container">
+        <div class="live-bar">
+            <div class="live-item">
+                <i class="fa-solid fa-clock"></i>
+                <span id="live-clock">--:--:-- IST</span>
+            </div>
+            <div class="live-item">
+                <i class="fa-solid fa-rotate"></i>
+                <span>Refresh in <strong id="countdown">30</strong>s</span>
+            </div>
+            <div class="live-item">
+                <i class="fa-solid fa-database"></i>
+                <span>Updated <strong id="last-updated-time">--:--:--</strong></span>
+            </div>
+            <div class="live-item">
+                <i class="fa-solid fa-building-columns"></i>
+                <span id="nse-status">NSE: Checking…</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ─── Hero ─── -->
+    <header class="hero container">
+        <h1>Market Overview</h1>
+        <p>Precious metals · NSE BeES · MCX Futures · Predictive gap analysis</p>
+    </header>
+
+    <!-- ─── Main ─── -->
+    <main class="container">
+
+        <!-- Section 1: USD Metals -->
+        <section class="section">
+            <div class="section-label">USD Commodities · 1D Change · INR/g Derived</div>
+            <div class="cards-grid">
+
+                <!-- Gold USD -->
+                <div class="card" id="card-gold-usd">
+                    <div class="card-meta">
+                        <div class="asset-icon gold"><i class="fa-solid fa-coins"></i></div>
+                        <div>
+                            <div class="asset-name">Gold</div>
+                            <div class="asset-sub">COMEX · GC=F</div>
+                        </div>
+                        <div class="badge">USD</div>
+                    </div>
+                    <div class="card-price">
+                        <span class="price-currency">$</span><span class="price-value" id="xau-price">——</span>
+                    </div>
+                    <div class="card-change" id="xau-change-row">
+                        <i class="fa-solid fa-caret-up caret"></i>
+                        <span id="xau-change">——</span>
+                        <span id="xau-pct" class="pct">(——)</span>
+                        <span class="tag-1d">1D</span>
+                    </div>
+                    <!-- INR / gram derived -->
+                    <div class="inr-gram-row">
+                        <span class="inr-gram-label">Per gram (INR)</span>
+                        <span class="inr-gram-value" id="xau-inr-gram">——</span>
+                    </div>
+                </div>
+
+                <!-- Silver USD -->
+                <div class="card" id="card-silver-usd">
+                    <div class="card-meta">
+                        <div class="asset-icon silver"><i class="fa-solid fa-coins"></i></div>
+                        <div>
+                            <div class="asset-name">Silver</div>
+                            <div class="asset-sub">COMEX · SI=F</div>
+                        </div>
+                        <div class="badge">USD</div>
+                    </div>
+                    <div class="card-price">
+                        <span class="price-currency">$</span><span class="price-value" id="xag-price">——</span>
+                    </div>
+                    <div class="card-change" id="xag-change-row">
+                        <i class="fa-solid fa-caret-up caret"></i>
+                        <span id="xag-change">——</span>
+                        <span id="xag-pct" class="pct">(——)</span>
+                        <span class="tag-1d">1D</span>
+                    </div>
+                    <div class="inr-gram-row">
+                        <span class="inr-gram-label">Per gram (INR)</span>
+                        <span class="inr-gram-value" id="xag-inr-gram">——</span>
+                    </div>
+                </div>
+
+                <!-- USD/INR Rate Card -->
+                <div class="card card-slim">
+                    <div class="card-meta">
+                        <div class="asset-icon fx"><i class="fa-solid fa-arrow-right-arrow-left"></i></div>
+                        <div>
+                            <div class="asset-name">USD / INR</div>
+                            <div class="asset-sub">Forex pair</div>
+                        </div>
+                    </div>
+                    <div class="card-price">
+                        <span class="price-currency">₹</span><span class="price-value" id="usdinr-price">——</span>
+                    </div>
+                    <div class="card-change" id="usdinr-change-row">
+                        <i class="fa-solid fa-caret-up caret"></i>
+                        <span id="usdinr-change">——</span>
+                        <span id="usdinr-pct" class="pct">(——)</span>
+                        <span class="tag-1d">1D</span>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Section 2: NSE BeES ETFs -->
+        <section class="section">
+            <div class="section-label">NSE BeES ETFs · 1D Change</div>
+            <div class="cards-grid">
+
+                <!-- Gold BeES -->
+                <div class="card">
+                    <div class="card-meta">
+                        <div class="asset-icon gold"><i class="fa-solid fa-box-archive"></i></div>
+                        <div>
+                            <div class="asset-name">Gold BeES</div>
+                            <div class="asset-sub">GOLDBEES.NS · Nippon</div>
+                        </div>
+                        <div class="badge">ETF</div>
+                    </div>
+                    <div class="card-price">
+                        <span class="price-currency">₹</span><span class="price-value" id="goldbees-price">——</span>
+                    </div>
+                    <div class="card-change" id="goldbees-change-row">
+                        <i class="fa-solid fa-caret-up caret"></i>
+                        <span id="goldbees-change">——</span>
+                        <span id="goldbees-pct" class="pct">(——)</span>
+                        <span class="tag-1d">1D</span>
+                    </div>
+                </div>
+
+                <!-- Silver BeES -->
+                <div class="card">
+                    <div class="card-meta">
+                        <div class="asset-icon silver"><i class="fa-solid fa-box-archive"></i></div>
+                        <div>
+                            <div class="asset-name">Silver BeES</div>
+                            <div class="asset-sub">SILVERBEES.NS · Mirae</div>
+                        </div>
+                        <div class="badge">ETF</div>
+                    </div>
+                    <div class="card-price">
+                        <span class="price-currency">₹</span><span class="price-value" id="silverbees-price">——</span>
+                    </div>
+                    <div class="card-change" id="silverbees-change-row">
+                        <i class="fa-solid fa-caret-up caret"></i>
+                        <span id="silverbees-change">——</span>
+                        <span id="silverbees-pct" class="pct">(——)</span>
+                        <span class="tag-1d">1D</span>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Section 3: India Market Prices (real NSE ETF) vs International -->
+        <section class="section">
+            <div class="section-label">India Market Price · Live NSE ETF · vs International Premium</div>
+            <div class="cards-grid">
+
+                <!-- India Gold -->
+                <div class="card">
+                    <div class="card-meta">
+                        <div class="asset-icon gold"><i class="fa-solid fa-indian-rupee-sign"></i></div>
+                        <div>
+                            <div class="asset-name">Gold India</div>
+                            <div class="asset-sub">IVZINGOLD.NS · Invesco · 1g</div>
+                        </div>
+                        <div class="badge">India</div>
+                    </div>
+                    <div class="card-price">
+                        <span class="price-currency">₹</span><span class="price-value" id="ingold-price">——</span>
+                        <span class="price-unit">/g</span>
+                    </div>
+                    <div class="card-change" id="ingold-change-row">
+                        <i class="fa-solid fa-caret-up caret"></i>
+                        <span id="ingold-change">——</span>
+                        <span id="ingold-pct" class="pct">(——)</span>
+                        <span class="tag-1d">1D</span>
+                    </div>
+                    <div class="inr-gram-row">
+                        <span class="inr-gram-label">vs International</span>
+                        <span class="inr-gram-value premium" id="gold-premium">——</span>
+                    </div>
+                </div>
+
+                <!-- India Silver -->
+                <div class="card">
+                    <div class="card-meta">
+                        <div class="asset-icon silver"><i class="fa-solid fa-indian-rupee-sign"></i></div>
+                        <div>
+                            <div class="asset-name">Silver India</div>
+                            <div class="asset-sub">SILVERIETF.NS · ICICI · 1g</div>
+                        </div>
+                        <div class="badge">India</div>
+                    </div>
+                    <div class="card-price">
+                        <span class="price-currency">₹</span><span class="price-value" id="insilver-price">——</span>
+                        <span class="price-unit">/g</span>
+                    </div>
+                    <div class="card-change" id="insilver-change-row">
+                        <i class="fa-solid fa-caret-up caret"></i>
+                        <span id="insilver-change">——</span>
+                        <span id="insilver-pct" class="pct">(——)</span>
+                        <span class="tag-1d">1D</span>
+                    </div>
+                    <div class="inr-gram-row">
+                        <span class="inr-gram-label">vs International</span>
+                        <span class="inr-gram-value premium" id="silver-premium">——</span>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Section 4: Gap Prediction -->
+        <section class="section">
+            <div class="section-label">Tomorrow's Expected Gap · USD move since NSE close (15:30 IST)</div>
+            <div class="cards-grid">
+
+                <!-- Gold BeES Expected Open -->
+                <div class="card card-prediction">
+                    <div class="prediction-header">
+                        <i class="fa-solid fa-bolt text-gold"></i>
+                        <span>Expected Gold BeES Open</span>
+                    </div>
+                    <div class="card-price prediction-price">
+                        <span class="price-currency">₹</span>
+                        <span class="price-value large" id="expected-goldbees">——</span>
+                    </div>
+                    <div class="gap-table">
+                        <div class="gap-row">
+                            <span>Gold USD at 15:30 IST</span>
+                            <span id="gold-anchor">$——</span>
+                        </div>
+                        <div class="gap-row">
+                            <span>Gold USD now</span>
+                            <span id="gold-now">$——</span>
+                        </div>
+                        <div class="gap-divider"></div>
+                        <div class="gap-row gap-total">
+                            <span>Move since close</span>
+                            <span class="gap-pct" id="gold-gap-pct">——</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Silver BeES Expected Open -->
+                <div class="card card-prediction">
+                    <div class="prediction-header">
+                        <i class="fa-solid fa-bolt text-silver"></i>
+                        <span>Expected Silver BeES Open</span>
+                    </div>
+                    <div class="card-price prediction-price">
+                        <span class="price-currency">₹</span>
+                        <span class="price-value large" id="expected-silverbees">——</span>
+                    </div>
+                    <div class="gap-table">
+                        <div class="gap-row">
+                            <span>Silver USD at 15:30 IST</span>
+                            <span id="silver-anchor">$——</span>
+                        </div>
+                        <div class="gap-row">
+                            <span>Silver USD now</span>
+                            <span id="silver-now">$——</span>
+                        </div>
+                        <div class="gap-divider"></div>
+                        <div class="gap-row gap-total">
+                            <span>Move since close</span>
+                            <span class="gap-pct" id="silver-gap-pct">——</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="footer container">
+        Data sourced from Yahoo Finance via public APIs · Refresh every 30s · INR/g = (Price×USDINR)÷31.1 · MCX prices
+        estimated
+    </footer>
+
+    <script src="main.js?v=20260224"></script>
+</body>
+
+</html>
