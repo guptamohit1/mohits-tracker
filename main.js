@@ -297,22 +297,27 @@ function lastValid(arr) {
  */
 function findAnchor1530(timestamps, closes) {
     const TARGET_UTC = 10 * 60; // 10:00 UTC = 15:30 IST
+    let bestIdx = -1;
+    let minDiff = 30; // Max 30 min window
 
-    // Scan backwards for the first day that has a candle near 15:30 IST
+    // Iterate through timestamps to find the closest candle to 10:00 UTC
+    // We look for the most recent one (last day available)
     for (let i = timestamps.length - 1; i >= 0; i--) {
         if (closes[i] === null || closes[i] === undefined) continue;
         const d = new Date(timestamps[i] * 1000);
-        const utcH = d.getUTCHours();
-        const utcM = d.getUTCMinutes();
+        const candleMin = d.getUTCHours() * 60 + d.getUTCMinutes();
+        const diff = Math.abs(candleMin - TARGET_UTC);
 
-        const candleMin = utcH * 60 + utcM;
-        // Check if this candle is within 5 minutes of 15:30 IST (10:00 UTC)
-        // AND it's not currently in the future (if the API returns projected/delayed data)
-        if (Math.abs(candleMin - TARGET_UTC) <= 5) {
-            return closes[i]; // Found the most recent anchor
+        if (diff <= 5) { // Prioritize exact or near-exact matches (within 5 mins)
+            return closes[i];
+        }
+        
+        if (diff < minDiff) { 
+            minDiff = diff;
+            bestIdx = i;
         }
     }
-    return null;
+    return bestIdx !== -1 ? closes[bestIdx] : null;
 }
 
 function processUSD(sym, raw) {
@@ -323,10 +328,23 @@ function processUSD(sym, raw) {
     const cur = raw.meta.regularMarketPrice ?? lastValid(closes);
 
     const obj = sym === 'GC=F' ? S.xau : S.xag;
-    obj.cur = cur;
-    obj.prev = prev;
-    obj.anchor1530 = findAnchor1530(timestamps, closes) ?? prev;
-    console.log(`[AurumTrack] ${sym} cur=$${cur} prev=$${prev} (matched for pct)`);
+
+    // IMPORTANT: If source is Yahoo, update both current and anchor.
+    // If source is TV, we ONLY update the anchor from Yahoo data.
+    if (S.source === 'yahoo') {
+        obj.cur = cur;
+        obj.prev = prev;
+    }
+    
+    const anchor = findAnchor1530(timestamps, closes);
+    if (anchor) {
+        obj.anchor1530 = anchor;
+        console.log(`[AurumTrack] Updated ${sym} anchor1530: $${anchor}`);
+    } else if (!obj.anchor1530) {
+        obj.anchor1530 = prev; // Fallback
+    }
+
+    console.log(`[AurumTrack] ${sym} Yahoo sync: cur=$${cur} prev=$${prev} anchor=$${obj.anchor1530}`);
 }
 
 function processBees(sym, raw) {
@@ -397,6 +415,19 @@ async function fetchAll() {
             const res = await fetchTradingView(req.m, req.t);
             if (res) processTVData(res);
         }
+
+        // EVEN IN TV MODE: Fetch Yahoo for Gold/Silver to get the 15:30 anchor
+        const anchors = [
+            { sym: 'GC=F', type: 'usd' },
+            { sym: 'SI=F', type: 'usd' }
+        ];
+        for (const item of anchors) {
+            try {
+                const raw = await fetchYahoo(item.sym, '5m', '5d'); // 5m is enough for anchor
+                if (raw) processUSD(item.sym, raw);
+            } catch (e) { console.error(`[AurumTrack] Yahoo anchor fetch failed for ${item.sym}:`, e); }
+        }
+
         renderUI();
         EL.lastUpdated.textContent = istString(istNow());
     }
