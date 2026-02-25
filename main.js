@@ -311,8 +311,8 @@ function findAnchor1530(timestamps, closes) {
         if (diff <= 5) { // Prioritize exact or near-exact matches (within 5 mins)
             return closes[i];
         }
-        
-        if (diff < minDiff) { 
+
+        if (diff < minDiff) {
             minDiff = diff;
             bestIdx = i;
         }
@@ -335,7 +335,7 @@ function processUSD(sym, raw) {
         obj.cur = cur;
         obj.prev = prev;
     }
-    
+
     const anchor = findAnchor1530(timestamps, closes);
     if (anchor) {
         obj.anchor1530 = anchor;
@@ -472,7 +472,13 @@ function animateTo(el, target, dec = 2) {
         const p = Math.min((now - t0) / dur, 1);
         const e = 1 - Math.pow(1 - p, 3); // ease-out cubic
         el.textContent = fmt(start + e * (target - start), dec);
-        if (p < 1) requestAnimationFrame(step);
+        if (p < 1) {
+            requestAnimationFrame(step);
+        } else {
+            // Add pulse effect once animation finishes
+            el.classList.add('updated');
+            setTimeout(() => el.classList.remove('updated'), 600);
+        }
     }
     requestAnimationFrame(step);
 }

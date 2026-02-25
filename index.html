@@ -7,39 +7,37 @@
     <title>Mohit's Tracker — Metals & BeES Dashboard</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css?v=20260225">
+    <link rel="stylesheet" href="style.css?v=20260225v2">
 </head>
 
 <body>
 
-    <!-- Ambient background orbs -->
-    <div class="bg-orbs" aria-hidden="true">
-        <div class="orb orb-gold"></div>
-        <div class="orb orb-silver"></div>
-    </div>
+    <!-- Clean minimalist background -->
+    <div class="app-bg" aria-hidden="true"></div>
 
     <!-- ─── Navbar ─── -->
     <nav class="navbar">
-        <a class="logo" href="#">
-            <i class="fa-solid fa-gem"></i>
-            <span>Mohit's Tracker</span>
-        </a>
-        <div class="nav-actions">
-            <div class="source-toggle" id="source-toggle">
-                <button class="source-btn" data-source="yahoo" title="Source: Yahoo Finance">
-                    <i class="fa-solid fa-y"></i>
-                    <span>Yahoo</span>
-                </button>
-                <button class="source-btn active" data-source="tradingview" title="Source: TradingView Scanner">
-                    <i class="fa-solid fa-chart-line"></i>
-                    <span>TradingView</span>
+        <div class="container nav-container">
+            <a class="logo" href="#">
+                <i class="fa-solid fa-gem"></i>
+                <span>Mohit's Tracker</span>
+            </a>
+            <div class="nav-actions">
+                <div class="source-toggle" id="source-toggle">
+                    <button class="source-btn" data-source="yahoo">
+                        <span>Yahoo</span>
+                    </button>
+                    <button class="source-btn active" data-source="tradingview">
+                        <span>TradingView</span>
+                    </button>
+                </div>
+                <button id="theme-toggle" class="btn-icon" aria-label="Toggle theme">
+                    <i class="fa-solid fa-moon" id="theme-icon"></i>
                 </button>
             </div>
-            <button id="theme-toggle" class="btn-icon" aria-label="Toggle theme">
-                <i class="fa-solid fa-moon" id="theme-icon"></i>
-            </button>
         </div>
     </nav>
 
@@ -76,7 +74,7 @@
 
         <!-- Section 1: USD Metals -->
         <section class="section">
-            <div class="section-label">USD Commodities · 1D Change · INR/g Derived</div>
+            <div class="section-label">International Markets</div>
             <div class="cards-grid">
 
                 <!-- Gold USD -->
@@ -131,13 +129,14 @@
                 </div>
 
                 <!-- USD/INR Rate Card -->
-                <div class="card card-slim">
+                <div class="card">
                     <div class="card-meta">
                         <div class="asset-icon fx"><i class="fa-solid fa-arrow-right-arrow-left"></i></div>
                         <div>
                             <div class="asset-name">USD / INR</div>
                             <div class="asset-sub"><span class="source-label">Forex pair</span></div>
                         </div>
+                        <div class="badge">Forex</div>
                     </div>
                     <div class="card-price">
                         <span class="price-currency">₹</span><span class="price-value"
@@ -155,7 +154,7 @@
 
         <!-- Section 2: MCX Futures (India) -->
         <section class="section" id="section-mcx">
-            <div class="section-label">MCX Futures (India) · Mini Contracts</div>
+            <div class="section-label">Indian Commodity Market</div>
             <div class="cards-grid">
 
                 <!-- Gold Mini MCX -->
@@ -205,7 +204,7 @@
 
         <!-- Section 2: NSE BeES ETFs -->
         <section class="section">
-            <div class="section-label">NSE BeES ETFs · 1D Change</div>
+            <div class="section-label">NSE BeES ETFs</div>
             <div class="cards-grid">
 
                 <!-- Gold BeES -->
@@ -214,7 +213,7 @@
                         <div class="asset-icon gold"><i class="fa-solid fa-box-archive"></i></div>
                         <div>
                             <div class="asset-name">Gold BeES</div>
-                            <div class="asset-sub"><span class="source-label">GOLDBEES.NS · Nippon</span></div>
+                            <div class="asset-sub"><span class="source-label">GOLDBEES.NS</span></div>
                         </div>
                         <div class="badge">ETF</div>
                     </div>
@@ -236,7 +235,7 @@
                         <div class="asset-icon silver"><i class="fa-solid fa-box-archive"></i></div>
                         <div>
                             <div class="asset-name">Silver BeES</div>
-                            <div class="asset-sub"><span class="source-label">SILVERBEES.NS · Mirae</span></div>
+                            <div class="asset-sub"><span class="source-label">SILVERBEES.NS</span></div>
                         </div>
                         <div class="badge">ETF</div>
                     </div>
@@ -258,7 +257,7 @@
 
         <!-- Section 4: Gap Prediction -->
         <section class="section">
-            <div class="section-label">Tomorrow's Expected Gap · USD move since NSE close (15:30 IST)</div>
+            <div class="section-label">Tomorrow's Expected Open</div>
             <div class="cards-grid">
 
                 <!-- Gold BeES Expected Open -->
