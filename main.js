@@ -31,7 +31,7 @@ const CFG = {
 ══════════════════════════════════════════════ */
 const S = {
     firstLoad: true, // Track if it's the first render for instant load
-    source: 'tradingview', // 'yahoo' or 'tradingview'
+    source: 'tradingview',
     xau: { cur: 0, prev: 0, anchor1530: 0 },
     xag: { cur: 0, prev: 0, anchor1530: 0 },
     usdinr: { cur: 0, prev: 0 },
@@ -103,9 +103,6 @@ const EL = {
     html: document.documentElement,
     themeIcon: document.getElementById('theme-icon'),
     themeBtn: document.getElementById('theme-toggle'),
-
-    // Source Toggle
-    sourceToggle: document.getElementById('source-toggle'),
 
     // MCX
     xaumPrice: document.getElementById('xaum-price'),
@@ -660,43 +657,13 @@ function renderGap(usdState, beesState, expEl, anchorEl, nowEl, pctEl) {
 /* ══════════════════════════════════════════════
    SOURCE TOGGLE
 ══════════════════════════════════════════════ */
-function initSourceToggle() {
-    const btns = EL.sourceToggle.querySelectorAll('.source-btn');
-    btns.forEach(btn => {
-        btn.addEventListener('click', async () => {
-            const src = btn.getAttribute('data-source');
-            if (src === S.source) return;
 
-            // UI update
-            btns.forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-
-            // State update
-            S.source = src;
-            localStorage.setItem('data_source', src);
-
-            // Instant refresh
-            resetCountdown();
-            await fetchAll();
-        });
-    });
-
-    // Load saved preference
-    const saved = localStorage.getItem('data_source');
-    if (saved && (saved === 'yahoo' || saved === 'tradingview')) {
-        S.source = saved;
-        btns.forEach(b => {
-            b.classList.toggle('active', b.getAttribute('data-source') === saved);
-        });
-    }
-}
 
 /* ══════════════════════════════════════════════
    BOOTSTRAP
 ══════════════════════════════════════════════ */
 document.addEventListener('DOMContentLoaded', async () => {
     initTheme();
-    initSourceToggle();
     startLiveClock();
     startCountdown();
 
