@@ -31,7 +31,7 @@ const CFG = {
 ══════════════════════════════════════════════ */
 const S = {
     firstLoad: true, // Track if it's the first render for instant load
-    source: 'yahoo', // 'yahoo' or 'tradingview'
+    source: 'tradingview', // 'yahoo' or 'tradingview'
     xau: { cur: 0, prev: 0, anchor1530: 0 },
     xag: { cur: 0, prev: 0, anchor1530: 0 },
     usdinr: { cur: 0, prev: 0 },
@@ -115,13 +115,7 @@ const EL = {
     xagmPrice: document.getElementById('xagm-price'),
     xagmChangeRow: document.getElementById('xagm-change-row'),
     xagmChange: document.getElementById('xagm-change'),
-    xagmPct: document.getElementById('xagm-pct'),
-
-    // Chart Modal
-    chartModal: document.getElementById('chart-modal'),
-    closeModal: document.getElementById('close-modal'),
-    modalAssetName: document.getElementById('modal-asset-name'),
-    chartContainer: document.getElementById('tradingview-widget-container')
+    xagmPct: document.getElementById('xagm-pct')
 };
 
 /* ══════════════════════════════════════════════
@@ -627,56 +621,6 @@ function renderGap(usdState, beesState, expEl, anchorEl, nowEl, pctEl) {
    BOOTSTRAP
 ══════════════════════════════════════════════ */
 /* ══════════════════════════════════════════════
-   CHARTS (TRADINGVIEW WIDGET)
-══════════════════════════════════════════════ */
-function initCharts() {
-    const chartBtns = document.querySelectorAll('.btn-chart');
-
-    chartBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            const symbol = btn.getAttribute('data-symbol');
-            const name = btn.getAttribute('data-name');
-
-            EL.modalAssetName.textContent = name;
-            EL.chartModal.classList.add('active');
-            EL.chartContainer.innerHTML = ''; // Clear previous
-
-            // Create TV Widget
-            if (typeof TradingView !== 'undefined') {
-                new TradingView.widget({
-                    "autosize": true,
-                    "symbol": symbol,
-                    "interval": "5",
-                    "timezone": "Asia/Kolkata",
-                    "theme": EL.html.getAttribute('data-theme') || "dark",
-                    "style": "1",
-                    "locale": "en",
-                    "toolbar_bg": "#f1f3f6",
-                    "enable_publishing": false,
-                    "allow_symbol_change": true,
-                    "container_id": "tradingview-widget-container"
-                });
-            } else {
-                EL.chartContainer.innerHTML = `<div style="padding: 40px; text-align: center; color: #888;">TradingView library not loaded. Please check your connection.</div>`;
-            }
-        });
-    });
-
-    EL.closeModal.addEventListener('click', () => {
-        EL.chartModal.classList.remove('active');
-        EL.chartContainer.innerHTML = ''; // Stop widget
-    });
-
-    // Close on click outside
-    EL.chartModal.addEventListener('click', (e) => {
-        if (e.target === EL.chartModal) {
-            EL.chartModal.classList.remove('active');
-            EL.chartContainer.innerHTML = '';
-        }
-    });
-}
-
-/* ══════════════════════════════════════════════
    SOURCE TOGGLE
 ══════════════════════════════════════════════ */
 function initSourceToggle() {
@@ -716,7 +660,6 @@ function initSourceToggle() {
 document.addEventListener('DOMContentLoaded', async () => {
     initTheme();
     initSourceToggle();
-    initCharts();
     startLiveClock();
     startCountdown();
 
