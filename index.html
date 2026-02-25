@@ -9,7 +9,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css?v=20260224">
+    <link rel="stylesheet" href="style.css?v=20260225">
+    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
 </head>
 
 <body>
@@ -103,6 +104,11 @@
                         <span class="inr-gram-label">Per gram (INR)</span>
                         <span class="inr-gram-value" id="xau-inr-gram">Loading...</span>
                     </div>
+                    <div class="card-actions">
+                        <button class="btn-chart" data-symbol="TVC:GOLD" data-name="Gold Spot (USD)">
+                            <i class="fa-solid fa-chart-line"></i> Chart
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Silver USD -->
@@ -128,6 +134,11 @@
                         <span class="inr-gram-label">Per gram (INR)</span>
                         <span class="inr-gram-value" id="xag-inr-gram">Loading...</span>
                     </div>
+                    <div class="card-actions">
+                        <button class="btn-chart" data-symbol="TVC:SILVER" data-name="Silver Spot (USD)">
+                            <i class="fa-solid fa-chart-line"></i> Chart
+                        </button>
+                    </div>
                 </div>
 
                 <!-- USD/INR Rate Card -->
@@ -148,6 +159,70 @@
                         <span id="usdinr-change">Loading...</span>
                         <span id="usdinr-pct" class="pct">(Loading...)</span>
                         <span class="tag-1d">1D</span>
+                    </div>
+                    <div class="card-actions">
+                        <button class="btn-chart" data-symbol="FX_IDC:USDINR" data-name="USD / INR Forex">
+                            <i class="fa-solid fa-chart-line"></i> Chart
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 2: MCX Futures (India) -->
+        <section class="section" id="section-mcx">
+            <div class="section-label">MCX Futures (India) · Mini Contracts</div>
+            <div class="cards-grid">
+
+                <!-- Gold Mini MCX -->
+                <div class="card" id="card-gold-mcx">
+                    <div class="card-meta">
+                        <div class="asset-icon gold"><i class="fa-solid fa-gauge-high"></i></div>
+                        <div>
+                            <div class="asset-name">Gold Mini</div>
+                            <div class="asset-sub"><span class="source-label">MCX:GOLDM1!</span></div>
+                        </div>
+                        <div class="badge">MCX</div>
+                    </div>
+                    <div class="card-price">
+                        <span class="price-currency">₹</span><span class="price-value" id="xaum-price">Loading...</span>
+                    </div>
+                    <div class="card-change" id="xaum-change-row">
+                        <i class="fa-solid fa-caret-up caret"></i>
+                        <span id="xaum-change">Loading...</span>
+                        <span id="xaum-pct" class="pct">(Loading...)</span>
+                        <span class="tag-1d">1D</span>
+                    </div>
+                    <div class="card-actions">
+                        <button class="btn-chart" data-symbol="MCX:GOLDM1!" data-name="Gold Mini (MCX)">
+                            <i class="fa-solid fa-chart-line"></i> Chart
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Silver Mini MCX -->
+                <div class="card" id="card-silver-mcx">
+                    <div class="card-meta">
+                        <div class="asset-icon silver"><i class="fa-solid fa-gauge-high"></i></div>
+                        <div>
+                            <div class="asset-name">Silver Mini</div>
+                            <div class="asset-sub"><span class="source-label">MCX:SILVERM1!</span></div>
+                        </div>
+                        <div class="badge">MCX</div>
+                    </div>
+                    <div class="card-price">
+                        <span class="price-currency">₹</span><span class="price-value" id="xagm-price">Loading...</span>
+                    </div>
+                    <div class="card-change" id="xagm-change-row">
+                        <i class="fa-solid fa-caret-up caret"></i>
+                        <span id="xagm-change">Loading...</span>
+                        <span id="xagm-pct" class="pct">(Loading...)</span>
+                        <span class="tag-1d">1D</span>
+                    </div>
+                    <div class="card-actions">
+                        <button class="btn-chart" data-symbol="MCX:SILVERM1!" data-name="Silver Mini (MCX)">
+                            <i class="fa-solid fa-chart-line"></i> Chart
+                        </button>
                     </div>
                 </div>
 
@@ -179,6 +254,11 @@
                         <span id="goldbees-pct" class="pct">(Loading...)</span>
                         <span class="tag-1d">1D</span>
                     </div>
+                    <div class="card-actions">
+                        <button class="btn-chart" data-symbol="NSE:GOLDBEES" data-name="Gold BeES (NSE)">
+                            <i class="fa-solid fa-chart-line"></i> Chart
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Silver BeES -->
@@ -200,6 +280,11 @@
                         <span id="silverbees-change">Loading...</span>
                         <span id="silverbees-pct" class="pct">(Loading...)</span>
                         <span class="tag-1d">1D</span>
+                    </div>
+                    <div class="card-actions">
+                        <button class="btn-chart" data-symbol="NSE:SILVERBEES" data-name="Silver BeES (NSE)">
+                            <i class="fa-solid fa-chart-line"></i> Chart
+                        </button>
                     </div>
                 </div>
 
@@ -278,7 +363,23 @@
         estimated
     </footer>
 
-    <script src="main.js?v=20260224"></script>
+    <!-- ─── Chart Modal ─── -->
+    <div id="chart-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <i class="fa-solid fa-chart-area"></i>
+                    <span id="modal-asset-name">Market Chart</span>
+                </div>
+                <button id="close-modal" class="btn-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="tradingview-widget-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="main.js?v=20260225"></script>
 </body>
 
 </html>

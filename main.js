@@ -36,7 +36,9 @@ const S = {
     xag: { cur: 0, prev: 0, anchor1530: 0 },
     usdinr: { cur: 0, prev: 0 },
     goldBees: { cur: 0, prev: 0 },
-    silverBees: { cur: 0, prev: 0 }
+    silverBees: { cur: 0, prev: 0 },
+    xauM: { cur: 0, prev: 0 },
+    xagM: { cur: 0, prev: 0 }
 };
 
 /* ══════════════════════════════════════════════
@@ -103,7 +105,23 @@ const EL = {
     themeBtn: document.getElementById('theme-toggle'),
 
     // Source Toggle
-    sourceToggle: document.getElementById('source-toggle')
+    sourceToggle: document.getElementById('source-toggle'),
+
+    // MCX
+    xaumPrice: document.getElementById('xaum-price'),
+    xaumChangeRow: document.getElementById('xaum-change-row'),
+    xaumChange: document.getElementById('xaum-change'),
+    xaumPct: document.getElementById('xaum-pct'),
+    xagmPrice: document.getElementById('xagm-price'),
+    xagmChangeRow: document.getElementById('xagm-change-row'),
+    xagmChange: document.getElementById('xagm-change'),
+    xagmPct: document.getElementById('xagm-pct'),
+
+    // Chart Modal
+    chartModal: document.getElementById('chart-modal'),
+    closeModal: document.getElementById('close-modal'),
+    modalAssetName: document.getElementById('modal-asset-name'),
+    chartContainer: document.getElementById('tradingview-widget-container')
 };
 
 /* ══════════════════════════════════════════════
@@ -343,6 +361,8 @@ function processTVData(res) {
         else if (item.s === 'FX_IDC:USDINR') { S.usdinr.cur = cur; S.usdinr.prev = prev; }
         else if (item.s === 'NSE:GOLDBEES') { S.goldBees.cur = cur; S.goldBees.prev = prev; }
         else if (item.s === 'NSE:SILVERBEES') { S.silverBees.cur = cur; S.silverBees.prev = prev; }
+        else if (item.s === 'MCX:GOLDM1!') { S.xauM.cur = cur; S.xauM.prev = prev; }
+        else if (item.s === 'MCX:SILVERM1!') { S.xagM.cur = cur; S.xagM.prev = prev; }
     });
 }
 
@@ -375,7 +395,8 @@ async function fetchAll() {
         const tvRequests = [
             { m: 'india', t: ["NSE:GOLDBEES", "NSE:SILVERBEES"] },
             { m: 'cfd', t: ["TVC:GOLD", "TVC:SILVER"] },
-            { m: 'forex', t: ["FX_IDC:USDINR"] }
+            { m: 'forex', t: ["FX_IDC:USDINR"] },
+            { m: 'global', t: ["MCX:GOLDM1!", "MCX:SILVERM1!"] }
         ];
 
         for (const req of tvRequests) {
@@ -476,6 +497,18 @@ function renderUI() {
             EL.sbChange, EL.sbPct, S.silverBees.cur, S.silverBees.prev, 2);
     }
 
+    // ── MCX Mini ──
+    if (S.xauM.cur) {
+        animateTo(EL.xaumPrice, S.xauM.cur, 0);
+        renderChange(EL.xaumChangeRow, EL.xaumChangeRow.querySelector('.caret'),
+            EL.xaumChange, EL.xaumPct, S.xauM.cur, S.xauM.prev, 0);
+    }
+    if (S.xagM.cur) {
+        animateTo(EL.xagmPrice, S.xagM.cur, 0);
+        renderChange(EL.xagmChangeRow, EL.xagmChangeRow.querySelector('.caret'),
+            EL.xagmChange, EL.xagmPct, S.xagM.cur, S.xagM.prev, 0);
+    }
+
     // ── Gap Prediction ──
     renderGap(S.xau, S.goldBees, EL.expGold, EL.goldAnchor, EL.goldNow, EL.goldGapPct);
     renderGap(S.xag, S.silverBees, EL.expSilver, EL.silverAnchor, EL.silverNow, EL.silverGapPct);
@@ -488,13 +521,17 @@ function renderUI() {
         'xag-price': 'TVC:SILVER',
         'usdinr-price': 'FX_IDC:USDINR',
         'goldbees-price': 'NSE:GOLDBEES',
-        'silverbees-price': 'NSE:SILVERBEES'
+        'silverbees-price': 'NSE:SILVERBEES',
+        'xaum-price': 'MCX:GOLDM1!',
+        'xagm-price': 'MCX:SILVERM1!'
     } : {
         'xau-price': 'COMEX · GC=F',
         'xag-price': 'COMEX · SI=F',
         'usdinr-price': 'Forex pair',
         'goldbees-price': 'GOLDBEES.NS · Nippon',
-        'silverbees-price': 'SILVERBEES.NS · Mirae'
+        'silverbees-price': 'SILVERBEES.NS · Mirae',
+        'xaum-price': 'MCX:GOLDM1!',
+        'xagm-price': 'MCX:SILVERM1!'
     };
 
     Object.keys(mapping).forEach(id => {
@@ -510,7 +547,10 @@ function renderUI() {
                     badge.textContent = 'TV';
                     badge.classList.add('badge-derived');
                 } else {
-                    badge.textContent = id.includes('bees') ? 'ETF' : (id.includes('inr') ? 'INR' : 'USD');
+                    if (id.includes('bees')) badge.textContent = 'ETF';
+                    else if (id.includes('inr')) badge.textContent = 'INR';
+                    else if (id.includes('xaum') || id.includes('xagm')) badge.textContent = 'MCX';
+                    else badge.textContent = 'USD';
                     badge.classList.remove('badge-derived');
                 }
             }
@@ -531,7 +571,9 @@ function saveCache() {
             xag: S.xag,
             usdinr: S.usdinr,
             goldBees: S.goldBees,
-            silverBees: S.silverBees
+            silverBees: S.silverBees,
+            xauM: S.xauM,
+            xagM: S.xagM
         }));
     } catch (e) { }
 }
@@ -585,6 +627,56 @@ function renderGap(usdState, beesState, expEl, anchorEl, nowEl, pctEl) {
    BOOTSTRAP
 ══════════════════════════════════════════════ */
 /* ══════════════════════════════════════════════
+   CHARTS (TRADINGVIEW WIDGET)
+══════════════════════════════════════════════ */
+function initCharts() {
+    const chartBtns = document.querySelectorAll('.btn-chart');
+
+    chartBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const symbol = btn.getAttribute('data-symbol');
+            const name = btn.getAttribute('data-name');
+
+            EL.modalAssetName.textContent = name;
+            EL.chartModal.classList.add('active');
+            EL.chartContainer.innerHTML = ''; // Clear previous
+
+            // Create TV Widget
+            if (typeof TradingView !== 'undefined') {
+                new TradingView.widget({
+                    "autosize": true,
+                    "symbol": symbol,
+                    "interval": "5",
+                    "timezone": "Asia/Kolkata",
+                    "theme": EL.html.getAttribute('data-theme') || "dark",
+                    "style": "1",
+                    "locale": "en",
+                    "toolbar_bg": "#f1f3f6",
+                    "enable_publishing": false,
+                    "allow_symbol_change": true,
+                    "container_id": "tradingview-widget-container"
+                });
+            } else {
+                EL.chartContainer.innerHTML = `<div style="padding: 40px; text-align: center; color: #888;">TradingView library not loaded. Please check your connection.</div>`;
+            }
+        });
+    });
+
+    EL.closeModal.addEventListener('click', () => {
+        EL.chartModal.classList.remove('active');
+        EL.chartContainer.innerHTML = ''; // Stop widget
+    });
+
+    // Close on click outside
+    EL.chartModal.addEventListener('click', (e) => {
+        if (e.target === EL.chartModal) {
+            EL.chartModal.classList.remove('active');
+            EL.chartContainer.innerHTML = '';
+        }
+    });
+}
+
+/* ══════════════════════════════════════════════
    SOURCE TOGGLE
 ══════════════════════════════════════════════ */
 function initSourceToggle() {
@@ -624,6 +716,7 @@ function initSourceToggle() {
 document.addEventListener('DOMContentLoaded', async () => {
     initTheme();
     initSourceToggle();
+    initCharts();
     startLiveClock();
     startCountdown();
 
