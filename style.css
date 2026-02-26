@@ -214,6 +214,61 @@ body {
     font-weight: 700;
     margin-bottom: 24px;
     color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* ── Live Status Dot ── */
+.live-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--down);
+    /* default red = offline */
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5);
+    flex-shrink: 0;
+}
+
+.live-dot.active {
+    background: var(--up);
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.5);
+    animation: pulse-green 2s infinite;
+}
+
+.live-dot.inactive {
+    background: var(--down);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5);
+    animation: pulse-red 2s infinite;
+}
+
+@keyframes pulse-green {
+    0% {
+        box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.6);
+    }
+
+    70% {
+        box-shadow: 0 0 0 8px rgba(34, 197, 94, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+    }
+}
+
+@keyframes pulse-red {
+    0% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5);
+    }
+
+    70% {
+        box-shadow: 0 0 0 8px rgba(239, 68, 68, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+    }
 }
 
 /* ── Cards ── */
@@ -359,65 +414,75 @@ body {
     align-items: center;
     gap: 10px;
     font-weight: 700;
-    margin-bottom: 16px;
+    margin-bottom: 20px;
+    font-size: 1rem;
     color: var(--accent-text);
+    letter-spacing: -0.2px;
+}
+
+.prediction-price {
+    margin-bottom: 4px;
+}
+
+.prediction-price .price-currency {
+    font-size: 1.4rem;
+    color: var(--accent-text);
+    opacity: 0.7;
 }
 
 .prediction-price .price-value {
     color: var(--accent-text);
+    font-size: 2.6rem;
+    font-weight: 800;
+    letter-spacing: -1.5px;
+}
+
+/* up/down tint on expected price */
+.prediction-price .price-value.text-up {
+    color: var(--up);
+}
+
+.prediction-price .price-value.text-down {
+    color: var(--down);
 }
 
 .gap-table {
     margin-top: 20px;
+    background: rgba(35, 18, 104, 0.06);
+    border-radius: 14px;
+    padding: 4px 12px;
 }
 
 .gap-row {
     display: flex;
     justify-content: space-between;
-    padding: 8px 0;
-    font-size: 0.85rem;
+    align-items: center;
+    padding: 9px 0;
+    font-size: 0.82rem;
     color: var(--accent-text);
-    opacity: 0.8;
+    opacity: 0.75;
 }
 
 .gap-divider {
     height: 1px;
-    background: rgba(35, 18, 104, 0.1);
-    margin: 8px 0;
+    background: rgba(35, 18, 104, 0.12);
 }
 
 .gap-total {
     font-weight: 700;
-    font-size: 1rem;
-    opacity: 1;
+    font-size: 0.92rem;
+    opacity: 1 !important;
 }
 
 /* Gap prediction up/down colours */
-.gap-pct.up   { color: var(--up);   font-weight: 700; }
-.gap-pct.down { color: var(--down); font-weight: 700; }
-
-/* ── Market Open State for Prediction Cards ── */
-/* When market is open, hide prediction content and show message */
-.card-prediction .market-open-msg {
-    display: none;
-}
-
-.card-prediction.market-open .market-open-msg {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 32px 16px;
-    text-align: center;
+.gap-pct.up {
+    color: var(--up);
     font-weight: 700;
-    font-size: 1.05rem;
-    color: var(--accent-text);
-    gap: 8px;
 }
 
-.card-prediction.market-open .card-price,
-.card-prediction.market-open .gap-table {
-    display: none;
+.gap-pct.down {
+    color: var(--down);
+    font-weight: 700;
 }
 
 /* ── Footer ── */

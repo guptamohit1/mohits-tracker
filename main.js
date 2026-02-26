@@ -203,6 +203,41 @@ function updateNseStatus(ist) {
 
     EL.nseStatus.textContent = txt;
     EL.nseStatus.className = cls;
+
+    // Update live dots based on market status
+    updateLiveDots(min, d);
+}
+
+/**
+ * Sets pulsing green/red dots on each section label.
+ * - International (TVC:GOLD/SILVER): 24/5 — Mon-Fri roughly 00:00-23:00 UTC
+ * - MCX: Mon-Fri 09:00-23:30 IST (210-1410 min IST)
+ * - NSE BeES + Prediction: Mon-Fri 09:15-15:30 IST (555-930 min)
+ */
+function updateLiveDots(minIST, dayOfWeek) {
+    const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5;
+
+    function setDot(id, isActive) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.classList.toggle('active', isActive);
+        el.classList.toggle('inactive', !isActive);
+    }
+
+    // International gold/silver (COMEX/TVC) — continuous Mon-Fri
+    setDot('dot-international', isWeekday);
+
+    // MCX: Mon–Fri 09:00–23:30 IST
+    const mcxOpen = isWeekday && minIST >= 540 && minIST < 1410;
+    setDot('dot-mcx', mcxOpen);
+
+    // NSE BeES: Mon–Fri 09:15–15:30 IST
+    const nseOpen = isWeekday && minIST >= 555 && minIST < 930;
+    setDot('dot-bees', nseOpen);
+
+    // Prediction: active after market close (data is meaningful after 15:30)
+    const predActive = isWeekday && minIST >= 930;
+    setDot('dot-prediction', predActive);
 }
 
 /* ══════════════════════════════════════════════
@@ -630,24 +665,12 @@ function loadCache() {
 }
 
 function renderGap(usdState, beesState, expEl, anchorEl, nowEl, pctEl) {
-    // Determine card element for toggle
-    const card = expEl.closest('.card-prediction');
-
-    // Rule: While market is open (9:15–15:30 IST on weekdays), show market open message
-    if (isNseOpen()) {
-        card.classList.add('market-open');
-        return;
-    }
-    card.classList.remove('market-open');
-
     if (!usdState.cur || !usdState.anchor1530 || !beesState.cur) return;
 
     // Enhanced prediction: use anchor at 15:30 IST and compute expected BeES open tomorrow
-    // The prediction accounts for overnight moves in international gold/silver prices
     const diffPct = (usdState.cur - usdState.anchor1530) / usdState.anchor1530;
 
-    // Apply a slight dampening factor (0.92) to account for the fact that
-    // BeES doesn't always gap 1:1 with international price moves (partial tracking)
+    // Apply dampening (0.92) — BeES doesn't always gap 1:1 with international moves
     const DAMPENING = 0.92;
     const expected = beesState.cur * (1 + diffPct * DAMPENING);
 
