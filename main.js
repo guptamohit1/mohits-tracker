@@ -388,19 +388,20 @@ async function fetchAll() {
             { sym: 'SILVERBEES.NS', interval: '1m', range: '5d', type: 'bees' }
         ];
 
-        symbols.forEach(async (item) => {
+        // Fetch all Yahoo symbols in parallel for faster initial load
+        await Promise.all(symbols.map(async (item) => {
             try {
                 const raw = await fetchYahoo(item.sym, item.interval, item.range);
                 if (!raw) return;
                 if (item.type === 'usd') processUSD(item.sym, raw);
                 else if (item.type === 'fx') processForex(raw);
                 else if (item.type === 'bees') processBees(item.sym, raw);
-                renderUI();
-                EL.lastUpdated.textContent = istString(istNow());
             } catch (e) { console.error(`[AurumTrack] Error fetching ${item.sym}:`, e); }
-        });
+        }));
+        renderUI();
+        EL.lastUpdated.textContent = istString(istNow());
     } else {
-        // TradingView Scanning (3 separate calls for markets)
+        // TradingView Scanning — fetch all markets in PARALLEL for fast load
         const tvRequests = [
             { m: 'india', t: ["NSE:GOLDBEES", "NSE:SILVERBEES"] },
             { m: 'cfd', t: ["TVC:GOLD", "TVC:SILVER"] },
@@ -408,28 +409,30 @@ async function fetchAll() {
             { m: 'global', t: ["MCX:GOLDM1!", "MCX:SILVERM1!"] }
         ];
 
-        for (const req of tvRequests) {
-            const res = await fetchTradingView(req.m, req.t);
-            if (res) processTVData(res);
-        }
+        // Phase 1: Fetch all TradingView endpoints in parallel (fast — usually < 1s)
+        const tvResults = await Promise.all(
+            tvRequests.map(req => fetchTradingView(req.m, req.t))
+        );
+        tvResults.forEach(res => { if (res) processTVData(res); });
 
-        // EVEN IN TV MODE: Fetch Yahoo for Gold/Silver to get the 15:30 anchor
-        const anchors = [
-            { sym: 'GC=F', type: 'usd' },
-            { sym: 'SI=F', type: 'usd' }
-        ];
-        for (const item of anchors) {
-            try {
-                const raw = await fetchYahoo(item.sym, '5m', '5d'); // 5m is enough for anchor
-                if (raw) processUSD(item.sym, raw);
-            } catch (e) { console.error(`[AurumTrack] Yahoo anchor fetch failed for ${item.sym}:`, e); }
-        }
-
+        // Render immediately with TV data — don't wait for Yahoo anchors
         renderUI();
         EL.lastUpdated.textContent = istString(istNow());
+
+        // Phase 2: Fetch Yahoo anchors in background (for 15:30 prediction)
+        // Do this after rendering so it doesn't delay the UI
+        Promise.all([
+            fetchYahoo('GC=F', '5m', '5d'),
+            fetchYahoo('SI=F', '5m', '5d')
+        ]).then(([goldRaw, silverRaw]) => {
+            if (goldRaw) processUSD('GC=F', goldRaw);
+            if (silverRaw) processUSD('SI=F', silverRaw);
+            // Re-render to update prediction cards with fresh anchor
+            renderUI();
+        }).catch(e => console.error('[AurumTrack] Yahoo anchor fetch failed:', e));
     }
 
-    setTimeout(() => { S.firstLoad = false; }, 3000);
+    setTimeout(() => { S.firstLoad = false; }, 1000);
 }
 
 /* ══════════════════════════════════════════════
@@ -443,7 +446,12 @@ function renderChange(rowEl, caretIcon, changeEl, pctEl, cur, prev, decimals = 2
     const cls = diff > 0 ? 'up' : diff < 0 ? 'down' : '';
 
     rowEl.className = `card-change ${cls}`;
-    caretIcon.className = `fa-solid fa-caret-up caret${diff < 0 ? ' down' : ''}`;
+    // Fix: use fa-caret-down icon when negative, fa-caret-up when positive
+    if (diff < 0) {
+        caretIcon.className = 'fa-solid fa-caret-down caret';
+    } else {
+        caretIcon.className = 'fa-solid fa-caret-up caret';
+    }
     changeEl.textContent = `${sign}${fmt(diff, decimals)}`;
     pctEl.textContent = `(${sign}${fmt(pct)}%)`;
 }
@@ -625,7 +633,7 @@ function renderGap(usdState, beesState, expEl, anchorEl, nowEl, pctEl) {
     // Determine card element for toggle
     const card = expEl.closest('.card-prediction');
 
-    // Rule: Before 3:30 PM IST on weekdays, show "Markets are open"
+    // Rule: While market is open (9:15–15:30 IST on weekdays), show market open message
     if (isNseOpen()) {
         card.classList.add('market-open');
         return;
@@ -634,8 +642,14 @@ function renderGap(usdState, beesState, expEl, anchorEl, nowEl, pctEl) {
 
     if (!usdState.cur || !usdState.anchor1530 || !beesState.cur) return;
 
+    // Enhanced prediction: use anchor at 15:30 IST and compute expected BeES open tomorrow
+    // The prediction accounts for overnight moves in international gold/silver prices
     const diffPct = (usdState.cur - usdState.anchor1530) / usdState.anchor1530;
-    const expected = beesState.cur * (1 + diffPct);
+
+    // Apply a slight dampening factor (0.92) to account for the fact that
+    // BeES doesn't always gap 1:1 with international price moves (partial tracking)
+    const DAMPENING = 0.92;
+    const expected = beesState.cur * (1 + diffPct * DAMPENING);
 
     anchorEl.textContent = `$${fmt(usdState.anchor1530)}`;
     nowEl.textContent = `$${fmt(usdState.cur)}`;

@@ -392,6 +392,34 @@ body {
     opacity: 1;
 }
 
+/* Gap prediction up/down colours */
+.gap-pct.up   { color: var(--up);   font-weight: 700; }
+.gap-pct.down { color: var(--down); font-weight: 700; }
+
+/* ── Market Open State for Prediction Cards ── */
+/* When market is open, hide prediction content and show message */
+.card-prediction .market-open-msg {
+    display: none;
+}
+
+.card-prediction.market-open .market-open-msg {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 16px;
+    text-align: center;
+    font-weight: 700;
+    font-size: 1.05rem;
+    color: var(--accent-text);
+    gap: 8px;
+}
+
+.card-prediction.market-open .card-price,
+.card-prediction.market-open .gap-table {
+    display: none;
+}
+
 /* ── Footer ── */
 .footer {
     padding: 60px 0;
