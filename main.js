@@ -683,9 +683,6 @@ function renderGap(usdState, beesState, expEl, anchorEl, nowEl, pctEl) {
     pctEl.className = `gap-pct ${cls}`;
 
     animateTo(expEl, expected, 2);
-    expEl.classList.remove('text-up', 'text-down');
-    if (expected > beesState.cur) expEl.classList.add('text-up');
-    else if (expected < beesState.cur) expEl.classList.add('text-down');
 }
 
 /* ══════════════════════════════════════════════

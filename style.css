@@ -437,15 +437,6 @@ body {
     letter-spacing: -1.5px;
 }
 
-/* up/down tint on expected price */
-.prediction-price .price-value.text-up {
-    color: var(--up);
-}
-
-.prediction-price .price-value.text-down {
-    color: var(--down);
-}
-
 .gap-table {
     margin-top: 20px;
     background: rgba(35, 18, 104, 0.06);
