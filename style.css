@@ -476,6 +476,67 @@ body {
     font-weight: 700;
 }
 
+/* ── Prediction Banner (locked / NSE closed) ── */
+.prediction-banner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 18px 24px;
+    border-radius: var(--radius-card);
+    font-size: 0.95rem;
+    font-weight: 500;
+    margin-bottom: 16px;
+    line-height: 1.5;
+}
+
+.prediction-banner i {
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+
+.banner-locked {
+    background: rgba(201, 168, 76, 0.10);
+    border: 1px solid rgba(201, 168, 76, 0.25);
+    color: var(--gold);
+}
+
+.banner-locked strong {
+    color: var(--gold);
+}
+
+.banner-closed {
+    background: rgba(239, 68, 68, 0.08);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    color: var(--down);
+}
+
+.banner-closed strong {
+    color: var(--down);
+}
+
+/* ── ML Model Badge ── */
+.model-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--accent-text);
+    opacity: 0.6;
+    margin-top: 4px;
+    margin-bottom: 4px;
+    letter-spacing: 0.02em;
+}
+
+.model-badge i {
+    font-size: 0.7rem;
+}
+
+/* NSE Pre-open status colour */
+#nse-status.pre {
+    color: var(--gold);
+}
+
 /* ── Footer ── */
 .footer {
     padding: 60px 0;

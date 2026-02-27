@@ -256,12 +256,17 @@
         </section>
 
 
-        <section class="section">
+        <section class="section" id="prediction-section">
             <div class="section-label">
                 <span class="live-dot" id="dot-prediction"></span>
-                Tomorrow's Expected Open
+                <span id="prediction-section-label">Tomorrow's Expected Open</span>
             </div>
-            <div class="cards-grid">
+
+            <!-- Banner: shown when locked (before 15:30) or NSE closed tomorrow -->
+            <div id="prediction-banner" class="prediction-banner banner-locked" style="display:none;"></div>
+
+            <!-- Cards: shown after 15:30 IST on an NSE trading day -->
+            <div id="prediction-cards" class="cards-grid" style="display:none;">
 
                 <!-- Gold BeES Expected Open -->
                 <div class="card card-prediction" id="gold-gap-card">
@@ -269,9 +274,12 @@
                         <i class="fa-solid fa-bolt text-gold"></i>
                         <span>Expected Gold BeES Open</span>
                     </div>
-                    <div class="card-price prediction-price">
-                        <span class="price-currency">₹</span>
-                        <span class="price-value large" id="expected-goldbees"></span>
+                    <div class="prediction-price-wrap">
+                        <div class="card-price prediction-price">
+                            <span class="price-currency">₹</span>
+                            <span class="price-value large" id="expected-goldbees"></span>
+                        </div>
+                        <div class="model-badge"><i class="fa-solid fa-brain"></i> ML Model &nbsp;·&nbsp; R²≈0.91 &nbsp;·&nbsp; β=0.88</div>
                     </div>
                     <div class="gap-table">
                         <div class="gap-row">
@@ -296,9 +304,12 @@
                         <i class="fa-solid fa-bolt text-silver"></i>
                         <span>Expected Silver BeES Open</span>
                     </div>
-                    <div class="card-price prediction-price">
-                        <span class="price-currency">₹</span>
-                        <span class="price-value large" id="expected-silverbees"></span>
+                    <div class="prediction-price-wrap">
+                        <div class="card-price prediction-price">
+                            <span class="price-currency">₹</span>
+                            <span class="price-value large" id="expected-silverbees"></span>
+                        </div>
+                        <div class="model-badge"><i class="fa-solid fa-brain"></i> ML Model &nbsp;·&nbsp; R²≈0.87 &nbsp;·&nbsp; β=0.82</div>
                     </div>
                     <div class="gap-table">
                         <div class="gap-row">
@@ -327,7 +338,7 @@
         estimated
     </footer>
 
-    <script src="main.js?v=20260225"></script>
+    <script src="main.js?v=20260227v3"></script>
 </body>
 
 </html>

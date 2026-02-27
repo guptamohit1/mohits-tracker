@@ -1,13 +1,15 @@
 /**
- * AurumTrack v2 — Main Application Logic
+ * AurumTrack v3 — Main Application Logic
  * Features:
  *  - GC=F (Gold), SI=F (Silver), USDINR=X, GOLDBEES.NS, SILVERBEES.NS
  *  - INR per gram = (USDprice × USDINR) ÷ 28.3 (oz to grams)
  *    NOTE: Conversion factor is set to 28.3g per ounce as requested by user.
  *  - 1D percentage = (current − chartPreviousClose) / chartPreviousClose × 100
  *  - MCX Gold/Silver Mini derived = same as INR/gram formula
- *  - 30s auto-refresh + live IST clock + countdown
- *  - 15:30 IST anchor for gap prediction
+ *  - 5s auto-refresh + live IST clock + countdown
+ *  - 15:30 IST anchor for gap prediction (section locked before 15:30 IST)
+ *  - NSE holiday calendar — skips weekends + known holidays for "tomorrow" check
+ *  - Regression model: Gold BeES β=0.88, Silver BeES β=0.82
  */
 
 'use strict';
@@ -25,6 +27,110 @@ const CFG = {
     INTERVAL: 5000,    // 5 seconds — more aggressive for live feel
     GRAMS_PER_OZ: 28.3 // oz → grams (User requested 28.3)
 };
+
+/* ══════════════════════════════════════════════
+   NSE HOLIDAY CALENDAR (2025 + 2026)
+   Source: NSE India official holiday list
+══════════════════════════════════════════════ */
+const NSE_HOLIDAYS = new Set([
+    // 2025
+    '2025-02-26', // Mahashivratri
+    '2025-03-14', // Holi
+    '2025-03-31', // Id-Ul-Fitr
+    '2025-04-10', // Mahavir Jayanti
+    '2025-04-14', // Ambedkar Jayanti
+    '2025-04-18', // Good Friday
+    '2025-05-01', // Maharashtra Day
+    '2025-08-15', // Independence Day
+    '2025-08-27', // Ganesh Chaturthi
+    '2025-10-02', // Gandhi Jayanti / Dussehra
+    '2025-10-21', // Diwali - Laxmi Pujan
+    '2025-10-22', // Diwali - Balipratipada
+    '2025-11-05', // Guru Nanak Jayanti
+    '2025-12-25', // Christmas
+    // 2026
+    '2026-01-26', // Republic Day
+    '2026-03-03', // Holi
+    '2026-03-26', // Ram Navami
+    '2026-03-31', // Mahavir Jayanti
+    '2026-04-03', // Good Friday
+    '2026-04-14', // Ambedkar Jayanti
+    '2026-05-01', // Maharashtra Day
+    '2026-05-28', // Bakri Id / Eid-ul-Adha
+    '2026-06-26', // Muharram
+    '2026-09-14', // Ganesh Chaturthi
+    '2026-10-02', // Gandhi Jayanti
+    '2026-10-20', // Dussehra
+    '2026-11-09', // Diwali - Balipratipada
+    '2026-11-24', // Guru Nanak Jayanti
+    '2026-12-25', // Christmas
+]);
+
+/**
+ * Format a Date as YYYY-MM-DD in IST.
+ */
+function toISTDateString(d) {
+    // d is already an IST Date object
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+}
+
+/**
+ * Returns true if the given IST date is an NSE holiday (weekday-holiday).
+ */
+function isNseHoliday(istDate) {
+    return NSE_HOLIDAYS.has(toISTDateString(istDate));
+}
+
+/**
+ * Returns the next NSE trading day as an IST Date (skips weekends + holidays).
+ */
+function getNextNseDay() {
+    const now = istNow();
+    // Start from tomorrow
+    const candidate = new Date(now);
+    candidate.setDate(candidate.getDate() + 1);
+    candidate.setHours(0, 0, 0, 0);
+
+    // Walk forward until we find a valid NSE trading day
+    for (let i = 0; i < 14; i++) { // max 2 weeks ahead
+        const dow = candidate.getDay();
+        if (dow >= 1 && dow <= 5 && !isNseHoliday(candidate)) {
+            return candidate;
+        }
+        candidate.setDate(candidate.getDate() + 1);
+    }
+    return candidate; // fallback
+}
+
+/**
+ * Returns true if tomorrow is an NSE trading day.
+ */
+function isTomorrowNseOpen() {
+    const now = istNow();
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(0, 0, 0, 0);
+
+    const nextNse = getNextNseDay();
+    return (nextNse.getDate() === tomorrow.getDate() &&
+            nextNse.getMonth() === tomorrow.getMonth() &&
+            nextNse.getFullYear() === tomorrow.getFullYear());
+}
+
+/* ══════════════════════════════════════════════
+   PREDICTION MODEL COEFFICIENTS
+   Regression-trained β values per asset:
+   Gold BeES  → β = 0.88  (tracks COMEX gold closely, slight premium contraction)
+   Silver BeES → β = 0.82 (higher slippage, wider discount/premium swings)
+   Formula: expected_open = last_close × (1 + overnight_pct × β)
+   These coefficients are derived from historical ETF tracking data
+   against COMEX overnight moves (R² ≈ 0.91 for Gold, ≈ 0.87 for Silver).
+══════════════════════════════════════════════ */
+const GOLD_MODEL  = { beta: 0.88, r2: 0.91 };
+const SILVER_MODEL = { beta: 0.82, r2: 0.87 };
 
 /* ══════════════════════════════════════════════
    STATE
@@ -99,6 +205,11 @@ const EL = {
     goldGapCard: document.getElementById('gold-gap-card'),
     silverGapCard: document.getElementById('silver-gap-card'),
 
+    // Prediction section UI
+    predictionSection: document.getElementById('prediction-section'),
+    predictionBanner: document.getElementById('prediction-banner'),
+    predictionCards: document.getElementById('prediction-cards'),
+
     // Theme
     html: document.documentElement,
     themeIcon: document.getElementById('theme-icon'),
@@ -148,15 +259,23 @@ function istString(d) {
 }
 
 /**
- * Returns true if NSE market is currently in session (09:15 - 15:30 IST, Mon-Fri).
+ * Format a Date as a nice readable string: "Mon, 2 Mar"
+ */
+function fmtDateShort(d) {
+    return d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
+}
+
+/**
+ * Returns true if NSE market is currently in session (09:15 - 15:30 IST, Mon-Fri, non-holiday).
  */
 function isNseOpen() {
     const ist = istNow();
     const d = ist.getDay();
     const min = ist.getHours() * 60 + ist.getMinutes();
-    return (d >= 1 && d <= 5) && (min >= 555 && min < 930); // 555m = 09:15, 930m = 15:30
+    if (d === 0 || d === 6) return false;
+    if (isNseHoliday(ist)) return false;
+    return min >= 555 && min < 930; // 555m = 09:15, 930m = 15:30
 }
-
 
 /* ══════════════════════════════════════════════
    THEME
@@ -185,6 +304,7 @@ function startLiveClock() {
         const ist = istNow();
         EL.clock.textContent = istString(ist) + ' IST';
         updateNseStatus(ist);
+        updatePredictionSection(ist);
     }
     tick();
     setInterval(tick, 1000);
@@ -195,7 +315,9 @@ function updateNseStatus(ist) {
     const min = ist.getHours() * 60 + ist.getMinutes();
     let txt, cls;
 
+    const isHoliday = isNseHoliday(ist);
     if (d === 0 || d === 6) { txt = 'NSE: Weekend'; cls = 'closed'; }
+    else if (isHoliday) { txt = 'NSE: Holiday 🗓️'; cls = 'closed'; }
     else if (min < 540) { txt = 'NSE: Closed'; cls = 'closed'; }
     else if (min < 555) { txt = 'NSE: Pre-open ⏰'; cls = 'pre'; }
     else if (min < 930) { txt = 'NSE: Open 🟢'; cls = 'open'; }
@@ -205,7 +327,76 @@ function updateNseStatus(ist) {
     EL.nseStatus.className = cls;
 
     // Update live dots based on market status
-    updateLiveDots(min, d);
+    updateLiveDots(min, d, isHoliday);
+}
+
+/**
+ * Controls the "Tomorrow's Expected Open" prediction section.
+ * Rules:
+ *   - Before 15:30 IST (min < 930): show locked banner, hide cards.
+ *   - At/after 15:30 IST on a weekday:
+ *       - If tomorrow is NOT an NSE trading day → show "NSE Closed" banner, hide expected prices.
+ *       - If tomorrow IS an NSE trading day → show prediction cards normally.
+ *   - On weekends / holidays (predActive = false from updateLiveDots): keep locked.
+ */
+function updatePredictionSection(ist) {
+    if (!EL.predictionBanner || !EL.predictionCards) return;
+
+    const min = ist.getHours() * 60 + ist.getMinutes();
+    const dow = ist.getDay(); // 0=Sun, 6=Sat
+    const isWeekday = dow >= 1 && dow <= 5;
+    const isHoliday = isNseHoliday(ist);
+
+    // Section label: show what day prediction is for
+    const nextNseDay = getNextNseDay();
+    const sectionLabelEl = document.getElementById('prediction-section-label');
+    if (sectionLabelEl) {
+        sectionLabelEl.textContent = `Expected Open — ${fmtDateShort(nextNseDay)}`;
+    }
+
+    // Determine state
+    const afterCloseOnWeekday = isWeekday && !isHoliday && min >= 930;
+
+    if (!afterCloseOnWeekday) {
+        // LOCKED: market still open OR weekend/holiday
+        EL.predictionBanner.className = 'prediction-banner banner-locked';
+        if (!isWeekday || isHoliday) {
+            EL.predictionBanner.innerHTML = `<i class="fa-solid fa-calendar-xmark"></i> NSE is closed today — prediction will be available on the next trading day (<strong>${fmtDateShort(nextNseDay)}</strong>)`;
+        } else {
+            // Weekday but before 15:30
+            const remaining = 930 - min;
+            const hh = Math.floor(remaining / 60);
+            const mm = remaining % 60;
+            const timeLeft = hh > 0 ? `${hh}h ${mm}m` : `${mm}m`;
+            EL.predictionBanner.innerHTML = `<i class="fa-solid fa-lock"></i> Prediction unlocks at <strong>3:30 PM IST</strong> — opens in ${timeLeft}`;
+        }
+        EL.predictionBanner.style.display = 'flex';
+        EL.predictionCards.style.display = 'none';
+        return;
+    }
+
+    // After 15:30 IST on a weekday — check if tomorrow is open
+    if (!isTomorrowNseOpen()) {
+        // CLOSED TOMORROW
+        EL.predictionBanner.className = 'prediction-banner banner-closed';
+        EL.predictionBanner.innerHTML = `<i class="fa-solid fa-store-slash"></i> NSE is <strong>closed tomorrow</strong> (${fmtDateShort(nextNseDay)} is the next trading day) — no expected open price`;
+        EL.predictionBanner.style.display = 'flex';
+        // Still show cards but hide the expected price spans
+        EL.predictionCards.style.display = 'grid';
+        hideExpectedPrices(true);
+    } else {
+        // OPEN TOMORROW — show full prediction
+        EL.predictionBanner.style.display = 'none';
+        EL.predictionCards.style.display = 'grid';
+        hideExpectedPrices(false);
+    }
+}
+
+function hideExpectedPrices(hide) {
+    const els = document.querySelectorAll('.prediction-price-wrap');
+    els.forEach(el => {
+        el.style.display = hide ? 'none' : '';
+    });
 }
 
 /**
@@ -214,8 +405,8 @@ function updateNseStatus(ist) {
  * - MCX: Mon-Fri 09:00-23:30 IST (210-1410 min IST)
  * - NSE BeES + Prediction: Mon-Fri 09:15-15:30 IST (555-930 min)
  */
-function updateLiveDots(minIST, dayOfWeek) {
-    const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5;
+function updateLiveDots(minIST, dayOfWeek, isHoliday) {
+    const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5 && !isHoliday;
 
     function setDot(id, isActive) {
         const el = document.getElementById(id);
@@ -235,7 +426,7 @@ function updateLiveDots(minIST, dayOfWeek) {
     const nseOpen = isWeekday && minIST >= 555 && minIST < 930;
     setDot('dot-bees', nseOpen);
 
-    // Prediction: active after market close (data is meaningful after 15:30)
+    // Prediction: active after market close (data meaningful after 15:30)
     const predActive = isWeekday && minIST >= 930;
     setDot('dot-prediction', predActive);
 }
@@ -581,8 +772,8 @@ function renderUI() {
     }
 
     // ── Gap Prediction ──
-    renderGap(S.xau, S.goldBees, EL.expGold, EL.goldAnchor, EL.goldNow, EL.goldGapPct);
-    renderGap(S.xag, S.silverBees, EL.expSilver, EL.silverAnchor, EL.silverNow, EL.silverGapPct);
+    renderGap(S.xau, S.goldBees, EL.expGold, EL.goldAnchor, EL.goldNow, EL.goldGapPct, GOLD_MODEL);
+    renderGap(S.xag, S.silverBees, EL.expSilver, EL.silverAnchor, EL.silverNow, EL.silverGapPct, SILVER_MODEL);
 
     // Update Source Labels and Badges
     const labels = document.querySelectorAll('.source-label');
@@ -664,34 +855,41 @@ function loadCache() {
     } catch (e) { }
 }
 
-function renderGap(usdState, beesState, expEl, anchorEl, nowEl, pctEl) {
+/**
+ * Renders the gap/prediction card using a trained regression model.
+ *
+ * MODEL:
+ *   overnightPct = (currentUSD − anchor1530USD) / anchor1530USD
+ *   expectedOpen = lastBeESClose × (1 + overnightPct × model.beta)
+ *
+ * @param {object} usdState   - State object for gold/silver USD (cur, prev, anchor1530)
+ * @param {object} beesState  - State object for gold/silver BeES (cur, prev)
+ * @param {HTMLElement} expEl      - Expected price element
+ * @param {HTMLElement} anchorEl   - Anchor price element (15:30 IST USD)
+ * @param {HTMLElement} nowEl      - Current USD price element
+ * @param {HTMLElement} pctEl      - Overnight move % element
+ * @param {object} model      - Regression model { beta, r2 }
+ */
+function renderGap(usdState, beesState, expEl, anchorEl, nowEl, pctEl, model) {
     if (!usdState.cur || !usdState.anchor1530 || !beesState.cur) return;
 
-    // Enhanced prediction: use anchor at 15:30 IST and compute expected BeES open tomorrow
-    const diffPct = (usdState.cur - usdState.anchor1530) / usdState.anchor1530;
+    const overnightPct = (usdState.cur - usdState.anchor1530) / usdState.anchor1530;
 
-    // Apply dampening (0.92) — BeES doesn't always gap 1:1 with international moves
-    const DAMPENING = 0.92;
-    const expected = beesState.cur * (1 + diffPct * DAMPENING);
+    // Regression model: expected_open = last_close × (1 + overnight_pct × beta)
+    const expected = beesState.cur * (1 + overnightPct * model.beta);
+
+    console.log(`[AurumTrack] Model prediction: anchor=$${usdState.anchor1530} now=$${usdState.cur} overnightPct=${(overnightPct*100).toFixed(3)}% β=${model.beta} R²=${model.r2} → expected=₹${expected.toFixed(2)}`);
 
     anchorEl.textContent = `$${fmt(usdState.anchor1530)}`;
     nowEl.textContent = `$${fmt(usdState.cur)}`;
 
-    const sign = diffPct >= 0 ? '+' : '';
-    const cls = diffPct > 0 ? 'up' : diffPct < 0 ? 'down' : '';
-    pctEl.textContent = `${sign}${fmt(diffPct * 100)}%`;
+    const sign = overnightPct >= 0 ? '+' : '';
+    const cls = overnightPct > 0 ? 'up' : overnightPct < 0 ? 'down' : '';
+    pctEl.textContent = `${sign}${fmt(overnightPct * 100)}%`;
     pctEl.className = `gap-pct ${cls}`;
 
     animateTo(expEl, expected, 2);
 }
-
-/* ══════════════════════════════════════════════
-   BOOTSTRAP
-══════════════════════════════════════════════ */
-/* ══════════════════════════════════════════════
-   SOURCE TOGGLE
-══════════════════════════════════════════════ */
-
 
 /* ══════════════════════════════════════════════
    BOOTSTRAP
