@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mohit's Tracker — Market News</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css?v=20260225v2">
+    <style>
+        .telegram-feed {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            max-width: 650px;
+            /* Reduced to look better on desktop */
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .telegram-message-card {
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            background: var(--surface);
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px var(--shadow-color), 0 2px 4px -1px var(--shadow-color);
+            border: 1px solid var(--border);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .telegram-message-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: linear-gradient(to bottom, var(--primary), var(--secondary));
+            opacity: 0.8;
+            border-radius: 4px 0 0 4px;
+        }
+
+        .telegram-message-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px var(--shadow-color), 0 4px 6px -2px var(--shadow-color);
+            border-color: var(--primary);
+        }
+
+        .msg-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.8rem;
+            margin-bottom: 0.2rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 500;
+        }
+
+        .msg-author {
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .msg-author i {
+            color: var(--primary);
+            /* Matching theme primary color */
+            font-size: 1.1rem;
+        }
+
+        .msg-time {
+            background: var(--bg);
+            padding: 0.2rem 0.6rem;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .msg-content {
+            line-height: 1.7;
+            font-size: 1.05rem;
+            word-break: break-word;
+            color: var(--text);
+            white-space: pre-wrap;
+        }
+
+        .msg-content a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .msg-content a:hover {
+            text-decoration: underline;
+        }
+
+        .msg-content i.emoji {
+            font-style: normal;
+        }
+
+        .msg-image {
+            max-width: 100%;
+            border-radius: 12px;
+            margin-top: 0.75rem;
+            max-height: 500px;
+            object-fit: cover;
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 6px -1px var(--shadow-color);
+        }
+
+        .loading-feed {
+            text-align: center;
+            padding: 5rem 2rem;
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            background: var(--surface);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .loading-feed i {
+            font-size: 3rem;
+            margin-bottom: 1.5rem;
+            display: block;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Clean minimalist background -->
+    <div class="app-bg" aria-hidden="true"></div>
+
+    <!-- ─── Navbar ─── -->
+    <nav class="navbar">
+        <div class="container nav-container">
+            <a class="logo" href="index.html">
+                <i class="fa-solid fa-gem"></i>
+                <span>Mohit's Tracker</span>
+            </a>
+            <div class="nav-actions">
+                <a href="index.html" class="btn-icon" aria-label="Home" title="Back to Dashboard"
+                    style="text-decoration: none;">
+                    <i class="fa-solid fa-house"></i>
+                </a>
+                <button id="theme-toggle" class="btn-icon" aria-label="Toggle theme">
+                    <i class="fa-solid fa-circle-half-stroke" id="theme-icon"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ─── Hero ─── -->
+    <header class="hero container">
+        <h1>Live Updates</h1>
+        <p>Market news & analysis that might impact gold and silver rates</p>
+    </header>
+
+    <!-- ─── Main ─── -->
+    <main class="container">
+        <div id="telegram-feed" class="telegram-feed">
+            <div class="loading-feed">
+                <i class="fa-solid fa-circle-notch fa-spin"></i>
+                <p>Fetching latest updates...</p>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        async function loadTelegramFeed() {
+            const feedContainer = document.getElementById('telegram-feed');
+            try {
+                const targetUrl = 'https://t.me/s/war_upd';
+                let htmlContent = null;
+
+                // Proxy 1: corsproxy.io (Returns raw HTML)
+                try {
+                    const url1 = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
+                    const response1 = await fetch(url1);
+                    if (response1.ok) {
+                        htmlContent = await response1.text();
+                    }
+                } catch (e) {
+                    console.log("Primary proxy failed, trying fallback...");
+                }
+
+                // Proxy 2: allorigins.win (Returns JSON)
+                if (!htmlContent) {
+                    const url2 = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+                    const response2 = await fetch(url2);
+                    if (!response2.ok) throw new Error('All proxies failed.');
+                    const data = await response2.json();
+                    htmlContent = data.contents;
+                }
+
+                if (!htmlContent) throw new Error("No content received from proxies.");
+
+                // Parse the DOM from the fetched HTML
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(htmlContent, 'text/html');
+
+                // Find all message widgets
+                const messages = Array.from(doc.querySelectorAll('.tgme_widget_message')).reverse();
+
+                feedContainer.innerHTML = '';
+
+                if (messages.length === 0) {
+                    feedContainer.innerHTML = `<div class="loading-feed">
+                        <i class="fa-solid fa-folder-open" style="animation:none;"></i>
+                        <p>No messages found or unable to fetch channel data.</p>
+                    </div>`;
+                    return;
+                }
+
+                messages.forEach(msg => {
+                    const textEl = msg.querySelector('.tgme_widget_message_text');
+                    const timeEl = msg.querySelector('.tgme_widget_message_date time');
+                    const authorEl = msg.querySelector('.tgme_widget_message_owner_name');
+                    const imageEl = msg.querySelector('.tgme_widget_message_photo_wrap');
+                    const linkEl = msg.querySelector('.tgme_widget_message_date');
+
+                    // Skip if the post has no content or image (sometimes service messages)
+                    if (!textEl && !imageEl) return;
+
+                    const card = document.createElement('div');
+                    card.className = 'telegram-message-card';
+
+                    let html = `<div class="msg-header">`;
+
+                    html += `<span class="msg-author"><i class="fa-solid fa-newspaper"></i> Market News</span>`;
+
+                    if (timeEl) {
+                        const date = new Date(timeEl.getAttribute('datetime'));
+
+                        const now = new Date();
+                        const diffMs = now - date;
+                        const diffMins = Math.floor(diffMs / 60000);
+                        const diffHrs = Math.floor(diffMins / 60);
+                        const diffDays = Math.floor(diffHrs / 24);
+
+                        // Filter out messages older than 15 days
+                        if (diffDays > 15) return;
+
+                        let timeStr = '';
+                        if (diffMins < 60) timeStr = `${diffMins}m ago`;
+                        else if (diffHrs < 24) timeStr = `${diffHrs}h ago`;
+                        else if (diffDays < 7) timeStr = `${diffDays}d ago`;
+                        else timeStr = date.toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' });
+
+                        html += `<span class="msg-time" title="${date.toLocaleString()}">${timeStr}</span>`;
+                    }
+                    html += `</div>`; // Close msg-header
+
+                    if (imageEl) {
+                        const style = imageEl.getAttribute('style');
+                        const match = style && style.match(/background-image:url\('([^']+)'\)/);
+                        if (match && match[1]) {
+                            html += `<img src="${match[1]}" class="msg-image" alt="Telegram Update Image" loading="lazy">`;
+                        }
+                    }
+
+                    if (textEl) {
+                        let textHtml = textEl.innerHTML.replace(/<a href/g, '<a target="_blank" rel="noopener" href');
+                        html += `<div class="msg-content">${textHtml}</div>`;
+                    }
+
+                    card.innerHTML = html;
+                    feedContainer.appendChild(card);
+                });
+
+                // If all messages were filtered out
+                if (feedContainer.innerHTML === '') {
+                    feedContainer.innerHTML = `<div class="loading-feed">
+                        <i class="fa-solid fa-clock-rotate-left" style="animation:none;"></i>
+                        <p>No updates in the past 15 days.</p>
+                    </div>`;
+                }
+
+            } catch (err) {
+                feedContainer.innerHTML = `<div class="loading-feed" style="color: #ff6b6b;">
+                    <i class="fa-solid fa-triangle-exclamation" style="animation:none;"></i>
+                    <p>Failed to feed live updates. Please try refreshing.</p>
+                </div>`;
+                console.error('Error fetching Telegram feed:', err);
+            }
+        }
+
+        // Initialize theme palette exactly like main.js to ensure purple/charcoal match
+        const THEME = {
+            dark: {
+                bg: '#0F0F13', // Charcoal Black
+                surface: '#1A1A20', // Deep Violet-Grey
+                primary: '#9D8DF1', // Soft Lavender
+                secondary: '#23232D', // Raised surface
+                text: '#F3F4F6',
+                textMuted: '#A1A1AA',
+                border: '#2E2E38',
+                up: '#34D399', // Mint Green
+                down: '#F87171', // Coral Red
+                gold: '#FBBF24',
+                silver: '#E2E8F0',
+                shadowColor: 'rgba(0,0,0,0.4)'
+            },
+            light: {
+                bg: '#F8F9FA', // Off-white
+                surface: '#FFFFFF', // Pure white
+                primary: '#7C3AED', // Vivid Purple
+                secondary: '#F1F5F9', // Light slate
+                text: '#111827',
+                textMuted: '#64748B',
+                border: '#E2E8F0',
+                up: '#10B981',
+                down: '#EF4444',
+                gold: '#D97706',
+                silver: '#64748B',
+                shadowColor: 'rgba(0,0,0,0.05)'
+            }
+        };
+
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            const palette = THEME[savedTheme];
+            for (const key in palette) {
+                document.documentElement.style.setProperty(`--${key}`, palette[key]);
+            }
+            updateThemeIcon(savedTheme);
+        }
+
+        function updateThemeIcon(theme) {
+            const icon = document.getElementById('theme-icon');
+            if (icon) {
+                icon.className = theme === 'dark' ? 'fa-solid fa-moon' : 'fa-solid fa-sun';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initTheme();
+            loadTelegramFeed();
+
+            const themeToggleBtn = document.getElementById('theme-toggle');
+            if (themeToggleBtn) {
+                themeToggleBtn.addEventListener('click', () => {
+                    const currentTheme = document.documentElement.getAttribute('data-theme');
+                    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                    document.documentElement.setAttribute('data-theme', newTheme);
+                    localStorage.setItem('theme', newTheme);
+
+                    const palette = THEME[newTheme];
+                    for (const key in palette) {
+                        document.documentElement.style.setProperty(`--${key}`, palette[key]);
+                    }
+                    updateThemeIcon(newTheme);
+                });
+            }
+        });
+    </script>
+</body>
+
+</html>
