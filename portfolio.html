@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portfolio Tracker — Mohit's Tracker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css?v=20260301">
+</head>
+
+<body>
+
+    <div class="app-bg" aria-hidden="true"></div>
+
+    <!-- ─── Navbar ─── -->
+    <nav class="navbar">
+        <div class="container nav-container">
+            <a class="logo" href="index.html">
+                <i class="fa-solid fa-gem"></i>
+                <span>Mohit's Tracker</span>
+            </a>
+            <div class="nav-actions">
+                <a href="index.html" class="btn-icon" title="Dashboard">
+                    <i class="fa-solid fa-chart-line"></i>
+                </a>
+                <a href="telegram.html" class="btn-icon" title="Market News">
+                    <i class="fa-solid fa-newspaper"></i>
+                </a>
+                <button id="theme-toggle" class="btn-icon" aria-label="Toggle theme">
+                    <i class="fa-solid fa-moon" id="theme-icon"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ─── Live Status Bar ─── -->
+    <div class="container">
+        <div class="live-bar">
+            <div class="live-item">
+                <i class="fa-solid fa-clock"></i>
+                <span id="live-clock">--:--:-- IST</span>
+            </div>
+            <div class="live-item">
+                <i class="fa-solid fa-rotate"></i>
+                <span>Syncing in <strong id="countdown">5</strong>s</span>
+            </div>
+            <div class="live-item">
+                <i class="fa-solid fa-database"></i>
+                <span>Price: <strong id="last-updated-time">--:--:--</strong></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ─── Hero ─── -->
+    <header class="hero container">
+        <h1>Portfolio P&L</h1>
+        <p>Track your BeES holdings with real-time gains and weighted average costs.</p>
+    </header>
+
+    <main class="container">
+
+        <!-- Input Section -->
+        <section class="section input-section">
+            <h2>Add Transaction</h2>
+            <form id="transaction-form" class="sentence-input-form">
+                <div class="sentence-wrap">
+                    <span>I</span>
+                    <select id="input-action" class="input-inline select-inline">
+                        <option value="buy">Bought</option>
+                        <option value="sell">Sold</option>
+                    </select>
+                    <input type="number" id="input-units" class="input-inline" placeholder="Quantity" min="0.01"
+                        step="any" required>
+                    <span>units of</span>
+                    <select id="input-asset" class="input-inline select-inline">
+                        <option value="Gold BeES">Gold BeES</option>
+                        <option value="Silver BeES">Silver BeES</option>
+                    </select>
+                    <span>at ₹</span>
+                    <input type="number" id="input-price" class="input-inline" placeholder="Price" min="0.01" step="any"
+                        required>
+                </div>
+                <button type="submit" class="btn-primary">Record Trade</button>
+            </form>
+        </section>
+
+        <!-- Portfolio Overview -->
+        <section class="section">
+            <div class="section-label">
+                <span class="live-dot active"></span>
+                Holdings Performance
+            </div>
+
+            <div id="portfolio-container" class="portfolio-grid">
+                <!-- Cards injected via JS -->
+                <div class="empty-state">
+                    <i class="fa-solid fa-parachute-box"></i>
+                    <p>No holdings found. Add your first buy order above!</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Analytics Section -->
+        <section class="section analytics-section">
+            <div class="section-label">
+                <i class="fa-solid fa-chart-line"></i>
+                Monthly Performance
+            </div>
+            <div id="analytics-container" class="analytics-grid">
+                <!-- Analytics cards will be injected here -->
+            </div>
+        </section>
+
+        <!-- Transaction History -->
+        <section class="section transaction-section">
+            <div class="section-label">
+                <i class="fa-solid fa-history" style="font-size: 1rem; opacity: 0.6;"></i>
+                Trade History
+            </div>
+            <div id="transaction-list" class="transaction-list">
+                <!-- List items injected via JS -->
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="footer container">
+        Portfolio data is stored locally in your browser. Real-time prices synced from Global Markets.
+    </footer>
+
+    <script src="portfolio.js?v=20260301"></script>
+</body>
+
+</html>

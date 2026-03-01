@@ -581,3 +581,421 @@ body {
         gap: 12px;
     }
 }
+
+/* ─── Portfolio Page Styles ─── */
+.portfolio-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.input-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    padding: 32px;
+    margin-bottom: 40px;
+    box-shadow: var(--shadow);
+}
+
+.input-section h2 {
+    font-size: 1.5rem;
+    margin-bottom: 12px;
+}
+
+.input-section p {
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+}
+
+.input-group {
+    display: flex;
+    gap: 12px;
+}
+
+.input-main {
+    flex: 1;
+    background: var(--surface-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-pill);
+    padding: 14px 24px;
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 1rem;
+    transition: all 0.2s;
+}
+
+.input-main:focus {
+    outline: none;
+    border-color: var(--accent-text);
+    background: var(--surface);
+}
+
+.btn-primary {
+    background: var(--accent-text);
+    color: var(--accent);
+    border: none;
+    border-radius: var(--radius-pill);
+    padding: 0 32px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-primary:hover {
+    filter: brightness(1.1);
+    transform: translateY(-2px);
+}
+
+/* ── Analytics Styles ── */
+.analytics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 20px;
+}
+
+.analytics-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    box-shadow: var(--shadow);
+    transition: all 0.2s;
+}
+
+.analytics-card:hover {
+    border-color: var(--accent-text);
+}
+
+.analytics-month {
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+}
+
+.analytics-profit {
+    font-size: 1.5rem;
+    font-weight: 800;
+}
+
+.analytics-profit.up {
+    color: var(--up);
+}
+
+.analytics-profit.down {
+    color: var(--down);
+}
+
+.empty-analytics {
+    grid-column: 1 / -1;
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+/* ── Refined Purplish Theme ── */
+.pnl-badge-inline {
+    display: inline-flex;
+    padding: 4px 12px;
+    border-radius: var(--radius-pill);
+    font-size: 0.8rem;
+    font-weight: 700;
+    margin-top: 4px;
+}
+
+.pnl-badge-inline.up {
+    background: rgba(34, 197, 94, 0.1);
+    color: var(--up);
+}
+
+.pnl-badge-inline.down {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--down);
+}
+
+.text-up {
+    color: var(--up);
+}
+
+.text-down {
+    color: var(--down);
+}
+
+.tx-asset-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.tx-type {
+    font-size: 0.75rem;
+    font-weight: 800;
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+.tx-type.buy {
+    background: rgba(34, 197, 94, 0.1);
+    color: var(--up);
+}
+
+.tx-type.sell {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--down);
+}
+
+.tx-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.tx-pnl {
+    font-weight: 700;
+    font-size: 0.9rem;
+}
+
+.tx-pnl.up {
+    color: var(--up);
+}
+
+.tx-pnl.down {
+    color: var(--down);
+}
+
+/* Input refine */
+.sentence-wrap span {
+    color: var(--text-secondary);
+}
+
+.input-inline {
+    color: var(--accent-text) !important;
+}
+
+/* Update primary button to deep purple */
+.btn-primary {
+    background: rgb(35, 18, 104);
+    color: rgb(234, 229, 255);
+}
+
+html[data-theme="dark"] .btn-primary {
+    background: rgb(234, 229, 255);
+    color: rgb(35, 18, 104);
+}
+
+.portfolio-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 32px;
+    margin-bottom: 40px;
+}
+
+.portfolio-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    padding: 32px;
+    box-shadow: var(--shadow);
+}
+
+.portfolio-card .asset-info {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.portfolio-card .asset-title {
+    font-size: 1.5rem;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+}
+
+.portfolio-card .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 24px;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    margin-bottom: 6px;
+}
+
+.stat-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.stat-value.large {
+    font-size: 1.5rem;
+}
+
+.pnl-badge {
+    padding: 8px 16px;
+    border-radius: var(--radius-pill);
+    font-size: 0.9rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.pnl-badge.up {
+    background: rgba(34, 197, 94, 0.1);
+    color: var(--up);
+}
+
+.pnl-badge.down {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--down);
+}
+
+.empty-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 80px 40px;
+    background: var(--surface);
+    border: 2px dashed var(--border);
+    border-radius: var(--radius-card);
+    color: var(--text-secondary);
+}
+
+.empty-state i {
+    font-size: 4rem;
+    margin-bottom: 24px;
+    color: var(--accent-text);
+    opacity: 0.3;
+}
+
+.transaction-section {
+    margin-top: 60px;
+}
+
+.transaction-list {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    overflow: hidden;
+}
+
+.transaction-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+}
+
+.transaction-item:last-child {
+    border-bottom: none;
+}
+
+.tx-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.tx-asset {
+    font-weight: 700;
+}
+
+.tx-details {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.btn-delete {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.btn-delete:hover {
+    background: var(--down);
+    color: white;
+    border-color: var(--down);
+}
+
+.sentence-input-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 20px;
+}
+
+.sentence-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    font-size: 1.25rem;
+    font-weight: 500;
+}
+
+.input-inline {
+    background: var(--surface-secondary);
+    border: none;
+    border-bottom: 2px solid var(--border);
+    padding: 2px 4px;
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 1.25rem;
+    font-weight: 700;
+    width: auto;
+    transition: all 0.2s;
+    border-radius: 4px;
+}
+
+.input-inline:focus {
+    outline: none;
+    border-bottom-color: var(--accent-text);
+    background: transparent;
+}
+
+.select-inline {
+    cursor: pointer;
+    appearance: none;
+    padding-right: 12px;
+}
+
+input[type="number"].input-inline {
+    width: 100px;
+}
+
+#input-asset {
+    width: 150px;
+}
+
+#input-action {
+    width: 100px;
+    color: var(--accent-text);
+}
+
+.btn-primary {
+    height: 48px;
+}
