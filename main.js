@@ -412,13 +412,12 @@ function updatePredictionSection(ist) {
 
     // After 15:30 IST on a weekday — check if tomorrow is open
     if (!isTomorrowNseOpen()) {
-        // CLOSED TOMORROW
-        EL.predictionBanner.className = 'prediction-banner banner-closed';
-        EL.predictionBanner.innerHTML = `<i class="fa-solid fa-store-slash"></i> NSE is <strong>closed tomorrow</strong> (${fmtDateShort(nextNseDay)} is the next trading day) — no expected open price`;
+        // Tomorrow is a holiday, but we show the prediction for the next trading day (which is nextNseDay)
+        EL.predictionBanner.className = 'prediction-banner banner-locked';
+        EL.predictionBanner.innerHTML = `<i class="fa-solid fa-calendar-day"></i> Tomorrow is an NSE holiday. Showing predictions for <strong>${fmtDateShort(nextNseDay)}</strong>.`;
         EL.predictionBanner.style.display = 'flex';
-        // Still show cards but hide the expected price spans
         EL.predictionCards.style.display = 'grid';
-        hideExpectedPrices(true);
+        hideExpectedPrices(false); // ALWAYS SHOW
     } else {
         // OPEN TOMORROW — show full prediction
         EL.predictionBanner.style.display = 'none';

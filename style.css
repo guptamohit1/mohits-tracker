@@ -305,39 +305,41 @@ body {
     color: var(--text-secondary);
 }
 
+/* Carousel and grid common behavior */
 .carousel-container {
-    display: flex;
-    gap: 16px;
-    overflow-x: auto;
-    padding: 8px 16px;
-    margin: 0 -16px;
-    scroll-snap-type: x mandatory;
-    scrollbar-width: none;
-    /* Firefox */
-    -ms-overflow-style: none;
-    /* IE and Edge */
-    -webkit-overflow-scrolling: touch;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 24px;
+    padding: 8px 0;
 }
 
-.carousel-container::-webkit-scrollbar {
-    display: none;
-    /* Chrome, Safari and Opera */
-}
-
-.carousel-container .card {
-    flex: 0 0 320px;
-    scroll-snap-align: start;
+@media (max-width: 768px) {
+    .carousel-container {
+        display: flex;
+        gap: 16px;
+        overflow-x: auto;
+        padding: 8px 16px;
+        margin: 0 -16px;
+        scroll-snap-type: x mandatory;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .carousel-container::-webkit-scrollbar {
+        display: none;
+    }
+    
+    .carousel-container .card {
+        flex: 0 0 320px;
+        scroll-snap-align: start;
+    }
 }
 
 @media (max-width: 480px) {
     .carousel-container .card {
         flex: 0 0 calc(100% - 32px);
         scroll-snap-align: center;
-    }
-
-    .carousel-container {
-        gap: 12px;
-        padding: 8px 16px;
     }
 }
 
