@@ -326,6 +326,11 @@ body {
     color: var(--accent-text);
 }
 
+.asset-icon.other {
+    background: rgba(147, 51, 234, 0.1);
+    color: rgb(147, 51, 234);
+}
+
 .asset-name {
     font-weight: 700;
     font-size: 1.1rem;

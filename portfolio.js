@@ -18,7 +18,9 @@ const STATE = {
     portfolio: JSON.parse(localStorage.getItem('mohit_portfolio')) || [],
     prices: {
         'Gold BeES': { cur: 0, sym: 'GOLDBEES.NS' },
-        'Silver BeES': { cur: 0, sym: 'SILVERBEES.NS' }
+        'Silver BeES': { cur: 0, sym: 'SILVERBEES.NS' },
+        'TATAGOLD': { cur: 0, sym: 'TATAGOLD.NS' },
+        'TATASILVER': { cur: 0, sym: 'TATSILV.NS' }
     }
 };
 
@@ -47,10 +49,10 @@ function savePortfolio() {
 }
 
 function calculateHoldings() {
-    const holdings = {
-        'Gold BeES': { units: 0, totalCost: 0, avgCost: 0, realizedPnl: 0 },
-        'Silver BeES': { units: 0, totalCost: 0, avgCost: 0, realizedPnl: 0 }
-    };
+    const holdings = {};
+    Object.keys(STATE.prices).forEach(asset => {
+        holdings[asset] = { units: 0, totalCost: 0, avgCost: 0, realizedPnl: 0 };
+    });
 
     STATE.portfolio.forEach(tx => {
         const h = holdings[tx.asset];
@@ -137,11 +139,10 @@ async function fetchPrice(symbol) {
 }
 
 async function updatePrices() {
-    const goldPrice = await fetchPrice(STATE.prices['Gold BeES'].sym);
-    const silverPrice = await fetchPrice(STATE.prices['Silver BeES'].sym);
-
-    if (goldPrice) STATE.prices['Gold BeES'].cur = goldPrice;
-    if (silverPrice) STATE.prices['Silver BeES'].cur = silverPrice;
+    for (const asset of Object.keys(STATE.prices)) {
+        const price = await fetchPrice(STATE.prices[asset].sym);
+        if (price) STATE.prices[asset].cur = price;
+    }
 
     ELEMENTS.lastUpdated.textContent = new Date().toLocaleTimeString('en-IN', { hour12: false });
     renderAll();
@@ -177,12 +178,15 @@ function renderPortfolio() {
         const unrealizedPct = data.units > 0 ? (unrealizedPnl / (data.units * data.avgCost)) * 100 : 0;
         const isUp = unrealizedPnl >= 0;
 
+        const isGold = asset.toLowerCase().includes('gold');
+        const isSilver = asset.toLowerCase().includes('silver');
+        
         const card = document.createElement('div');
         card.className = 'portfolio-card';
         card.innerHTML = `
             <div class="asset-info">
-                <div class="asset-icon ${asset.toLowerCase().includes('gold') ? 'gold' : 'silver'}">
-                    <i class="fa-solid ${asset.toLowerCase().includes('gold') ? 'fa-coins' : 'fa-circle-dot'}"></i>
+                <div class="asset-icon ${isGold ? 'gold' : isSilver ? 'silver' : 'other'}">
+                    <i class="fa-solid ${isGold ? 'fa-coins' : isSilver ? 'fa-circle-dot' : 'fa-gem'}"></i>
                 </div>
                 <div>
                     <div class="asset-title">${asset}</div>
