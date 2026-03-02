@@ -212,7 +212,7 @@
         <section class="section">
             <div class="section-label">
                 <span class="live-dot" id="dot-bees"></span>
-                NSE BeES ETFs
+                NSE ETFs
             </div>
             <div class="cards-grid">
 
@@ -256,6 +256,50 @@
                         <i class="fa-solid fa-caret-up caret"></i>
                         <span id="silverbees-change">Loading...</span>
                         <span id="silverbees-pct" class="pct">(Loading...)</span>
+                        <span class="tag-1d">1D</span>
+                    </div>
+                </div>
+
+                <!-- Tata Gold -->
+                <div class="card">
+                    <div class="card-meta">
+                        <div class="asset-icon gold"><i class="fa-solid fa-box-archive"></i></div>
+                        <div>
+                            <div class="asset-name">Tata Gold</div>
+                            <div class="asset-sub"><span class="source-label">TATAGOLD.NS</span></div>
+                        </div>
+                        <div class="badge">ETF</div>
+                    </div>
+                    <div class="card-price">
+                        <span class="price-currency">₹</span><span class="price-value"
+                            id="tatagold-price">Loading...</span>
+                    </div>
+                    <div class="card-change" id="tatagold-change-row">
+                        <i class="fa-solid fa-caret-up caret"></i>
+                        <span id="tatagold-change">Loading...</span>
+                        <span id="tatagold-pct" class="pct">(Loading...)</span>
+                        <span class="tag-1d">1D</span>
+                    </div>
+                </div>
+
+                <!-- Tata Silver -->
+                <div class="card">
+                    <div class="card-meta">
+                        <div class="asset-icon silver"><i class="fa-solid fa-box-archive"></i></div>
+                        <div>
+                            <div class="asset-name">Tata Silver</div>
+                            <div class="asset-sub"><span class="source-label">TATSILV.NS</span></div>
+                        </div>
+                        <div class="badge">ETF</div>
+                    </div>
+                    <div class="card-price">
+                        <span class="price-currency">₹</span><span class="price-value"
+                            id="tatasilver-price">Loading...</span>
+                    </div>
+                    <div class="card-change" id="tatasilver-change-row">
+                        <i class="fa-solid fa-caret-up caret"></i>
+                        <span id="tatasilver-change">Loading...</span>
+                        <span id="tatasilver-pct" class="pct">(Loading...)</span>
                         <span class="tag-1d">1D</span>
                     </div>
                 </div>
@@ -334,6 +378,68 @@
                         <div class="gap-row gap-total">
                             <span>Move since close</span>
                             <span class="gap-pct" id="silver-gap-pct"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tata Gold Expected Open -->
+                <div class="card card-prediction" id="tatagold-gap-card">
+                    <div class="prediction-header">
+                        <i class="fa-solid fa-bolt text-gold"></i>
+                        <span>Expected Tata Gold Open</span>
+                    </div>
+                    <div class="prediction-price-wrap">
+                        <div class="card-price prediction-price">
+                            <span class="price-currency">₹</span>
+                            <span class="price-value large" id="expected-tatagold"></span>
+                        </div>
+                        <div class="model-badge"><i class="fa-solid fa-brain"></i> ML Model &nbsp;·&nbsp; R²≈0.91
+                            &nbsp;·&nbsp; β=0.88</div>
+                    </div>
+                    <div class="gap-table">
+                        <div class="gap-row">
+                            <span>Gold USD at 15:30 IST</span>
+                            <span id="tatagold-anchor"></span>
+                        </div>
+                        <div class="gap-row">
+                            <span>Gold USD now</span>
+                            <span id="tatagold-now"></span>
+                        </div>
+                        <div class="gap-divider"></div>
+                        <div class="gap-row gap-total">
+                            <span>Move since close</span>
+                            <span class="gap-pct" id="tatagold-gap-pct"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tata Silver Expected Open -->
+                <div class="card card-prediction" id="tatasilver-gap-card">
+                    <div class="prediction-header">
+                        <i class="fa-solid fa-bolt text-silver"></i>
+                        <span>Expected Tata Silver Open</span>
+                    </div>
+                    <div class="prediction-price-wrap">
+                        <div class="card-price prediction-price">
+                            <span class="price-currency">₹</span>
+                            <span class="price-value large" id="expected-tatasilver"></span>
+                        </div>
+                        <div class="model-badge"><i class="fa-solid fa-brain"></i> ML Model &nbsp;·&nbsp; R²≈0.87
+                            &nbsp;·&nbsp; β=0.82</div>
+                    </div>
+                    <div class="gap-table">
+                        <div class="gap-row">
+                            <span>Silver USD at 15:30 IST</span>
+                            <span id="tatasilver-anchor"></span>
+                        </div>
+                        <div class="gap-row">
+                            <span>Silver USD now</span>
+                            <span id="tatasilver-now"></span>
+                        </div>
+                        <div class="gap-divider"></div>
+                        <div class="gap-row gap-total">
+                            <span>Move since close</span>
+                            <span class="gap-pct" id="tatasilver-gap-pct"></span>
                         </div>
                     </div>
                 </div>

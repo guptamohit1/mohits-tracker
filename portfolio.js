@@ -11,6 +11,10 @@
 
 const CONFIG = {
     API: 'https://query1.finance.yahoo.com/v8/finance/chart/',
+    PROXIES: [
+        { url: 'https://api.allorigins.win/get?url=', wraps: true },
+        { url: 'https://corsproxy.io/?', wraps: false }
+    ],
     INTERVAL: 10000, // 10s for portfolio updates
 };
 
@@ -19,8 +23,8 @@ const STATE = {
     prices: {
         'Gold BeES': { cur: 0, sym: 'GOLDBEES.NS' },
         'Silver BeES': { cur: 0, sym: 'SILVERBEES.NS' },
-        'TATAGOLD': { cur: 0, sym: 'TATAGOLD.NS' },
-        'TATASILVER': { cur: 0, sym: 'TATSILV.NS' }
+        'Tata Gold': { cur: 0, sym: 'TATAGOLD.NS' },
+        'Tata Silver': { cur: 0, sym: 'TATSILV.NS' }
     }
 };
 
@@ -126,16 +130,34 @@ function deleteTransaction(id) {
 // ... (fetch logic remains same)
 
 async function fetchPrice(symbol) {
+    const url = `${CONFIG.API}${symbol}?interval=1m&range=1d&_=${Date.now()}`;
+
+    // Try direct
     try {
-        const url = `${CONFIG.API}${symbol}?interval=1m&range=1d&_=${Date.now()}`;
         const r = await fetch(url);
-        if (!r.ok) return null;
-        const d = await r.json();
-        return d.chart?.result?.[0]?.meta?.regularMarketPrice || null;
-    } catch (e) {
-        console.error('Fetch failed for', symbol, e);
-        return null;
+        if (r.ok) {
+            const d = await r.json();
+            return d.chart?.result?.[0]?.meta?.regularMarketPrice || null;
+        }
+    } catch (e) { }
+
+    // Try proxies
+    for (const p of CONFIG.PROXIES) {
+        try {
+            const proxyUrl = p.url + encodeURIComponent(url);
+            const r = await fetch(proxyUrl);
+            if (!r.ok) continue;
+            let d;
+            if (p.wraps) {
+                const w = await r.json();
+                d = JSON.parse(w.contents);
+            } else {
+                d = await r.json();
+            }
+            if (d.chart?.result?.[0]) return d.chart.result[0].meta.regularMarketPrice || null;
+        } catch (e) { }
     }
+    return null;
 }
 
 async function updatePrices() {
@@ -180,13 +202,13 @@ function renderPortfolio() {
 
         const isGold = asset.toLowerCase().includes('gold');
         const isSilver = asset.toLowerCase().includes('silver');
-        
+
         const card = document.createElement('div');
         card.className = 'portfolio-card';
         card.innerHTML = `
             <div class="asset-info">
                 <div class="asset-icon ${isGold ? 'gold' : isSilver ? 'silver' : 'other'}">
-                    <i class="fa-solid ${isGold ? 'fa-coins' : isSilver ? 'fa-circle-dot' : 'fa-gem'}"></i>
+                    <i class="fa-solid fa-box-archive"></i>
                 </div>
                 <div>
                     <div class="asset-title">${asset}</div>

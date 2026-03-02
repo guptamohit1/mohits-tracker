@@ -116,8 +116,8 @@ function isTomorrowNseOpen() {
 
     const nextNse = getNextNseDay();
     return (nextNse.getDate() === tomorrow.getDate() &&
-            nextNse.getMonth() === tomorrow.getMonth() &&
-            nextNse.getFullYear() === tomorrow.getFullYear());
+        nextNse.getMonth() === tomorrow.getMonth() &&
+        nextNse.getFullYear() === tomorrow.getFullYear());
 }
 
 /* ══════════════════════════════════════════════
@@ -129,7 +129,7 @@ function isTomorrowNseOpen() {
    These coefficients are derived from historical ETF tracking data
    against COMEX overnight moves (R² ≈ 0.91 for Gold, ≈ 0.87 for Silver).
 ══════════════════════════════════════════════ */
-const GOLD_MODEL  = { beta: 0.88, r2: 0.91 };
+const GOLD_MODEL = { beta: 0.88, r2: 0.91 };
 const SILVER_MODEL = { beta: 0.82, r2: 0.87 };
 
 /* ══════════════════════════════════════════════
@@ -143,6 +143,8 @@ const S = {
     usdinr: { cur: 0, prev: 0 },
     goldBees: { cur: 0, prev: 0 },
     silverBees: { cur: 0, prev: 0 },
+    tataGold: { cur: 0, prev: 0 },
+    tataSilver: { cur: 0, prev: 0 },
     xauM: { cur: 0, prev: 0 },
     xagM: { cur: 0, prev: 0 }
 };
@@ -189,6 +191,18 @@ const EL = {
     sbChange: document.getElementById('silverbees-change'),
     sbPct: document.getElementById('silverbees-pct'),
 
+    // Tata Gold
+    tgPrice: document.getElementById('tatagold-price'),
+    tgChangeRow: document.getElementById('tatagold-change-row'),
+    tgChange: document.getElementById('tatagold-change'),
+    tgPct: document.getElementById('tatagold-pct'),
+
+    // Tata Silver
+    tsPrice: document.getElementById('tatasilver-price'),
+    tsChangeRow: document.getElementById('tatasilver-change-row'),
+    tsChange: document.getElementById('tatasilver-change'),
+    tsPct: document.getElementById('tatasilver-pct'),
+
     silverBeesPct: document.getElementById('silverbees-pct'),
 
     // Gap prediction - Gold
@@ -202,8 +216,23 @@ const EL = {
     silverAnchor: document.getElementById('silver-anchor'),
     silverNow: document.getElementById('silver-now'),
     silverGapPct: document.getElementById('silver-gap-pct'),
+
+    // Gap prediction - Tata Gold
+    expTataGold: document.getElementById('expected-tatagold'),
+    tataGoldAnchor: document.getElementById('tatagold-anchor'),
+    tataGoldNow: document.getElementById('tatagold-now'),
+    tataGoldGapPct: document.getElementById('tatagold-gap-pct'),
+
+    // Gap prediction - Tata Silver
+    expTataSilver: document.getElementById('expected-tatasilver'),
+    tataSilverAnchor: document.getElementById('tatasilver-anchor'),
+    tataSilverNow: document.getElementById('tatasilver-now'),
+    tataSilverGapPct: document.getElementById('tatasilver-gap-pct'),
+
     goldGapCard: document.getElementById('gold-gap-card'),
     silverGapCard: document.getElementById('silver-gap-card'),
+    tatagoldGapCard: document.getElementById('tatagold-gap-card'),
+    tatasilverGapCard: document.getElementById('tatasilver-gap-card'),
 
     // Prediction section UI
     predictionSection: document.getElementById('prediction-section'),
@@ -573,7 +602,9 @@ function processUSD(sym, raw) {
 function processBees(sym, raw) {
     const prev = raw.meta.regularMarketPreviousClose ?? raw.meta.previousClose ?? raw.meta.chartPreviousClose;
     const cur = raw.meta.regularMarketPrice ?? lastValid(raw.indicators.quote[0].close);
-    const obj = sym === 'GOLDBEES.NS' ? S.goldBees : S.silverBees;
+    const obj = sym === 'GOLDBEES.NS' ? S.goldBees :
+        sym === 'SILVERBEES.NS' ? S.silverBees :
+            sym === 'TATAGOLD.NS' ? S.tataGold : S.tataSilver;
     obj.cur = cur;
     obj.prev = prev;
 }
@@ -596,6 +627,8 @@ function processTVData(res) {
         else if (item.s === 'FX_IDC:USDINR') { S.usdinr.cur = cur; S.usdinr.prev = prev; }
         else if (item.s === 'NSE:GOLDBEES') { S.goldBees.cur = cur; S.goldBees.prev = prev; }
         else if (item.s === 'NSE:SILVERBEES') { S.silverBees.cur = cur; S.silverBees.prev = prev; }
+        else if (item.s === 'NSE:TATAGOLD') { S.tataGold.cur = cur; S.tataGold.prev = prev; }
+        else if (item.s === 'NSE:TATSILV') { S.tataSilver.cur = cur; S.tataSilver.prev = prev; }
         else if (item.s === 'MCX:GOLDM1!') { S.xauM.cur = cur; S.xauM.prev = prev; }
         else if (item.s === 'MCX:SILVERM1!') { S.xagM.cur = cur; S.xagM.prev = prev; }
     });
@@ -611,7 +644,9 @@ async function fetchAll() {
             { sym: 'SI=F', interval: '1m', range: '5d', type: 'usd' },
             { sym: 'USDINR=X', interval: '1m', range: '5d', type: 'fx' },
             { sym: 'GOLDBEES.NS', interval: '1m', range: '5d', type: 'bees' },
-            { sym: 'SILVERBEES.NS', interval: '1m', range: '5d', type: 'bees' }
+            { sym: 'SILVERBEES.NS', interval: '1m', range: '5d', type: 'bees' },
+            { sym: 'TATAGOLD.NS', interval: '1m', range: '5d', type: 'bees' },
+            { sym: 'TATSILV.NS', interval: '1m', range: '5d', type: 'bees' }
         ];
 
         // Fetch all Yahoo symbols in parallel for faster initial load
@@ -629,7 +664,7 @@ async function fetchAll() {
     } else {
         // TradingView Scanning — fetch all markets in PARALLEL for fast load
         const tvRequests = [
-            { m: 'india', t: ["NSE:GOLDBEES", "NSE:SILVERBEES"] },
+            { m: 'india', t: ["NSE:GOLDBEES", "NSE:SILVERBEES", "NSE:TATAGOLD", "NSE:TATSILV"] },
             { m: 'cfd', t: ["TVC:GOLD", "TVC:SILVER"] },
             { m: 'forex', t: ["FX_IDC:USDINR"] },
             { m: 'global', t: ["MCX:GOLDM1!", "MCX:SILVERM1!"] }
@@ -759,6 +794,20 @@ function renderUI() {
             EL.sbChange, EL.sbPct, S.silverBees.cur, S.silverBees.prev, 2);
     }
 
+    // ── Tata Gold ──
+    if (S.tataGold.cur) {
+        animateTo(EL.tgPrice, S.tataGold.cur, 2);
+        renderChange(EL.tgChangeRow, EL.tgChangeRow.querySelector('.caret'),
+            EL.tgChange, EL.tgPct, S.tataGold.cur, S.tataGold.prev, 2);
+    }
+
+    // ── Tata Silver ──
+    if (S.tataSilver.cur) {
+        animateTo(EL.tsPrice, S.tataSilver.cur, 2);
+        renderChange(EL.tsChangeRow, EL.tsChangeRow.querySelector('.caret'),
+            EL.tsChange, EL.tsPct, S.tataSilver.cur, S.tataSilver.prev, 2);
+    }
+
     // ── MCX Mini ──
     if (S.xauM.cur) {
         animateTo(EL.xaumPrice, S.xauM.cur, 0);
@@ -774,6 +823,8 @@ function renderUI() {
     // ── Gap Prediction ──
     renderGap(S.xau, S.goldBees, EL.expGold, EL.goldAnchor, EL.goldNow, EL.goldGapPct, GOLD_MODEL);
     renderGap(S.xag, S.silverBees, EL.expSilver, EL.silverAnchor, EL.silverNow, EL.silverGapPct, SILVER_MODEL);
+    renderGap(S.xau, S.tataGold, EL.expTataGold, EL.tataGoldAnchor, EL.tataGoldNow, EL.tataGoldGapPct, GOLD_MODEL);
+    renderGap(S.xag, S.tataSilver, EL.expTataSilver, EL.tataSilverAnchor, EL.tataSilverNow, EL.tataSilverGapPct, SILVER_MODEL);
 
     // Update Source Labels and Badges
     const labels = document.querySelectorAll('.source-label');
@@ -784,6 +835,8 @@ function renderUI() {
         'usdinr-price': 'FX_IDC:USDINR',
         'goldbees-price': 'NSE:GOLDBEES',
         'silverbees-price': 'NSE:SILVERBEES',
+        'tatagold-price': 'NSE:TATAGOLD',
+        'tatasilver-price': 'NSE:TATSILV',
         'xaum-price': 'MCX:GOLDM1!',
         'xagm-price': 'MCX:SILVERM1!'
     } : {
@@ -792,6 +845,8 @@ function renderUI() {
         'usdinr-price': 'Forex pair',
         'goldbees-price': 'GOLDBEES.NS · Nippon',
         'silverbees-price': 'SILVERBEES.NS · Mirae',
+        'tatagold-price': 'TATAGOLD.NS · Tata',
+        'tatasilver-price': 'TATSILV.NS · Tata',
         'xaum-price': 'MCX:GOLDM1!',
         'xagm-price': 'MCX:SILVERM1!'
     };
@@ -878,7 +933,7 @@ function renderGap(usdState, beesState, expEl, anchorEl, nowEl, pctEl, model) {
     // Regression model: expected_open = last_close × (1 + overnight_pct × beta)
     const expected = beesState.cur * (1 + overnightPct * model.beta);
 
-    console.log(`[AurumTrack] Model prediction: anchor=$${usdState.anchor1530} now=$${usdState.cur} overnightPct=${(overnightPct*100).toFixed(3)}% β=${model.beta} R²=${model.r2} → expected=₹${expected.toFixed(2)}`);
+    console.log(`[AurumTrack] Model prediction: anchor=$${usdState.anchor1530} now=$${usdState.cur} overnightPct=${(overnightPct * 100).toFixed(3)}% β=${model.beta} R²=${model.r2} → expected=₹${expected.toFixed(2)}`);
 
     anchorEl.textContent = `$${fmt(usdState.anchor1530)}`;
     nowEl.textContent = `$${fmt(usdState.cur)}`;
