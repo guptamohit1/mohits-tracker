@@ -1067,3 +1067,45 @@ input[type="number"].input-inline {
 .btn-primary {
     height: 48px;
 }
+/* ─── Card Spread Info ─── */
+.card-spread-wrap {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.spread-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.spread-values {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.spread-pct {
+    font-size: 0.95rem;
+    font-weight: 800;
+}
+
+.spread-abs {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.spread-pct.up, .spread-abs.up {
+    color: var(--up);
+}
+
+.spread-pct.down, .spread-abs.down {
+    color: var(--down);
+}

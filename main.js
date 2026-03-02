@@ -252,7 +252,13 @@ const EL = {
     xagmPrice: document.getElementById('xagm-price'),
     xagmChangeRow: document.getElementById('xagm-change-row'),
     xagmChange: document.getElementById('xagm-change'),
-    xagmPct: document.getElementById('xagm-pct')
+    xagmPct: document.getElementById('xagm-pct'),
+
+    // Spreads
+    goldSpreadPct: document.getElementById('gold-spread-pct'),
+    goldSpreadAbs: document.getElementById('gold-spread-abs'),
+    silverSpreadPct: document.getElementById('silver-spread-pct'),
+    silverSpreadAbs: document.getElementById('silver-spread-abs')
 };
 
 /* ══════════════════════════════════════════════
@@ -820,11 +826,45 @@ function renderUI() {
             EL.xagmChange, EL.xagmPct, S.xagM.cur, S.xagM.prev, 0);
     }
 
+    // ── Arbitrage / Spread Analysis ──
+    renderSpreads();
+
     // ── Gap Prediction ──
     renderGap(S.xau, S.goldBees, EL.expGold, EL.goldAnchor, EL.goldNow, EL.goldGapPct, GOLD_MODEL);
     renderGap(S.xag, S.silverBees, EL.expSilver, EL.silverAnchor, EL.silverNow, EL.silverGapPct, SILVER_MODEL);
     renderGap(S.xau, S.tataGold, EL.expTataGold, EL.tataGoldAnchor, EL.tataGoldNow, EL.tataGoldGapPct, GOLD_MODEL);
     renderGap(S.xag, S.tataSilver, EL.expTataSilver, EL.tataSilverAnchor, EL.tataSilverNow, EL.tataSilverGapPct, SILVER_MODEL);
+
+    function renderSpreads() {
+        if (!S.usdinr.cur) return;
+
+        // Gold Spread
+        if (S.xau.cur && S.xauM.cur) {
+            const mcxPerGram = S.xauM.cur / 10; // Gold Mini is 10g
+            const parityInrG = (S.xau.cur * S.usdinr.cur) / CFG.GRAMS_PER_OZ;
+            updateSpreadUI(EL.goldSpreadPct, EL.goldSpreadAbs, mcxPerGram, parityInrG);
+        }
+
+        // Silver Spread
+        if (S.xag.cur && S.xagM.cur) {
+            const mcxPerGram = S.xagM.cur / 1000; // Silver Mini is 1kg
+            const parityInrG = (S.xag.cur * S.usdinr.cur) / CFG.GRAMS_PER_OZ;
+            updateSpreadUI(EL.silverSpreadPct, EL.silverSpreadAbs, mcxPerGram, parityInrG);
+        }
+    }
+
+    function updateSpreadUI(pctEl, absEl, mcxG, parityG) {
+        if (!pctEl || !absEl) return;
+        const diff = mcxG - parityG;
+        const pct = (diff / parityG) * 100;
+        const sign = diff >= 0 ? '+' : '';
+        const cls = diff >= 0 ? 'up' : 'down';
+
+        pctEl.textContent = `${sign}${fmt(pct, 2)}%`;
+        pctEl.className = `spread-pct ${cls}`;
+        absEl.textContent = `${sign}₹${fmt(Math.abs(diff), 0)}`;
+        absEl.className = `spread-abs ${cls}`;
+    }
 
     // Update Source Labels and Badges
     const labels = document.querySelectorAll('.source-label');
