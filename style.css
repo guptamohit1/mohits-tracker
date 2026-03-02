@@ -278,6 +278,62 @@ body {
     gap: 24px;
 }
 
+/* ── Carousel Grouping ── */
+.carousel-group {
+    margin-bottom: 32px;
+}
+
+.carousel-title-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding: 0 4px;
+}
+
+.carousel-title-row i {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    opacity: 0.8;
+}
+
+.carousel-label {
+    font-size: 0.9rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+}
+
+.carousel-container {
+    display: flex;
+    gap: 20px;
+    overflow-x: auto;
+    padding: 4px;
+    margin: 0 -4px;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    /* Firefox */
+    -ms-overflow-style: none;
+    /* IE and Edge */
+}
+
+.carousel-container::-webkit-scrollbar {
+    display: none;
+    /* Chrome, Safari and Opera */
+}
+
+.carousel-container .card {
+    flex: 0 0 320px;
+    scroll-snap-align: start;
+}
+
+@media (max-width: 480px) {
+    .carousel-container .card {
+        flex: 0 0 280px;
+    }
+}
+
 .card {
     background: var(--surface);
     border: 1px solid var(--border);
