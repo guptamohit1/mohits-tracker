@@ -307,15 +307,16 @@ body {
 
 .carousel-container {
     display: flex;
-    gap: 20px;
+    gap: 16px;
     overflow-x: auto;
-    padding: 4px;
-    margin: 0 -4px;
+    padding: 8px 16px;
+    margin: 0 -16px;
     scroll-snap-type: x mandatory;
     scrollbar-width: none;
     /* Firefox */
     -ms-overflow-style: none;
     /* IE and Edge */
+    -webkit-overflow-scrolling: touch;
 }
 
 .carousel-container::-webkit-scrollbar {
@@ -330,7 +331,13 @@ body {
 
 @media (max-width: 480px) {
     .carousel-container .card {
-        flex: 0 0 280px;
+        flex: 0 0 calc(100% - 32px);
+        scroll-snap-align: center;
+    }
+
+    .carousel-container {
+        gap: 12px;
+        padding: 8px 16px;
     }
 }
 
