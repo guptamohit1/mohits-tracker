@@ -10,21 +10,17 @@
 'use strict';
 
 const CONFIG = {
-    API: 'https://query1.finance.yahoo.com/v8/finance/chart/',
-    PROXIES: [
-        { url: 'https://api.allorigins.win/get?url=', wraps: true },
-        { url: 'https://corsproxy.io/?', wraps: false }
-    ],
+    API: 'https://scanner.tradingview.com/india/scan',
     INTERVAL: 10000, // 10s for portfolio updates
 };
 
 const STATE = {
     portfolio: JSON.parse(localStorage.getItem('mohit_portfolio')) || [],
     prices: {
-        'Gold BeES': { cur: 0, sym: 'GOLDBEES.NS' },
-        'Silver BeES': { cur: 0, sym: 'SILVERBEES.NS' },
-        'Tata Gold': { cur: 0, sym: 'TATAGOLD.NS' },
-        'Tata Silver': { cur: 0, sym: 'TATSILV.NS' }
+        'Gold BeES': { cur: 0, sym: 'NSE:GOLDBEES' },
+        'Silver BeES': { cur: 0, sym: 'NSE:SILVERBEES' },
+        'Tata Gold': { cur: 0, sym: 'NSE:TATAGOLD' },
+        'Tata Silver': { cur: 0, sym: 'NSE:TATSILV' }
     }
 };
 
@@ -129,42 +125,33 @@ function deleteTransaction(id) {
    ══════════════════════════════════════════════ */
 // ... (fetch logic remains same)
 
-async function fetchPrice(symbol) {
-    const url = `${CONFIG.API}${symbol}?interval=1m&range=1d&_=${Date.now()}`;
-
-    // Try direct
+async function fetchPrices() {
+    const tickers = Object.values(STATE.prices).map(p => p.sym);
     try {
-        const r = await fetch(url);
+        const r = await fetch(CONFIG.API, {
+            method: 'POST',
+            body: JSON.stringify({
+                symbols: { tickers },
+                columns: ["close"]
+            })
+        });
         if (r.ok) {
-            const d = await r.json();
-            return d.chart?.result?.[0]?.meta?.regularMarketPrice || null;
-        }
-    } catch (e) { }
-
-    // Try proxies
-    for (const p of CONFIG.PROXIES) {
-        try {
-            const proxyUrl = p.url + encodeURIComponent(url);
-            const r = await fetch(proxyUrl);
-            if (!r.ok) continue;
-            let d;
-            if (p.wraps) {
-                const w = await r.json();
-                d = JSON.parse(w.contents);
-            } else {
-                d = await r.json();
+            const res = await r.json();
+            if (res.data) {
+                res.data.forEach(item => {
+                    const price = item.d[0];
+                    const asset = Object.keys(STATE.prices).find(k => STATE.prices[k].sym === item.s);
+                    if (asset) STATE.prices[asset].cur = price;
+                });
             }
-            if (d.chart?.result?.[0]) return d.chart.result[0].meta.regularMarketPrice || null;
-        } catch (e) { }
+        }
+    } catch (e) {
+        console.error("TV Fetch Error", e);
     }
-    return null;
 }
 
 async function updatePrices() {
-    for (const asset of Object.keys(STATE.prices)) {
-        const price = await fetchPrice(STATE.prices[asset].sym);
-        if (price) STATE.prices[asset].cur = price;
-    }
+    await fetchPrices();
 
     ELEMENTS.lastUpdated.textContent = new Date().toLocaleTimeString('en-IN', { hour12: false });
     renderAll();

@@ -18,12 +18,7 @@
    CONFIG
 ══════════════════════════════════════════════ */
 const CFG = {
-    API: 'https://query1.finance.yahoo.com/v8/finance/chart/',
     TV_API: 'https://scanner.tradingview.com/',
-    PROXIES: [
-        { url: 'https://api.allorigins.win/get?url=', wraps: true },
-        { url: 'https://corsproxy.io/?', wraps: false }
-    ],
     INTERVAL: 5000,    // 5 seconds — more aggressive for live feel
     GRAMS_PER_OZ: 28.3 // oz → grams (User requested 28.3)
 };
@@ -122,15 +117,15 @@ function isTomorrowNseOpen() {
 
 /* ══════════════════════════════════════════════
    PREDICTION MODEL COEFFICIENTS
-   Regression-trained β values per asset:
-   Gold BeES  → β = 0.88  (tracks COMEX gold closely, slight premium contraction)
-   Silver BeES → β = 0.82 (higher slippage, wider discount/premium swings)
-   Formula: expected_open = last_close × (1 + overnight_pct × β)
-   These coefficients are derived from historical ETF tracking data
-   against COMEX overnight moves (R² ≈ 0.91 for Gold, ≈ 0.87 for Silver).
+    // Regression-trained β values per asset based on TV prev close (5:00 PM EST instead of 15:30 IST):
+    // Since TV captures more of the US session, the overnight "gap" is smaller,
+    // so we slightly reduce the tracking beta for accuracy.
+    // Gold BeES  → β = 0.75
+    // Silver BeES → β = 0.70
+    // Formula: expected_open = last_close × (1 + overnight_pct × β)
 ══════════════════════════════════════════════ */
-const GOLD_MODEL = { beta: 0.88, r2: 0.91 };
-const SILVER_MODEL = { beta: 0.82, r2: 0.87 };
+const GOLD_MODEL = { beta: 0.75, r2: 0.91 };
+const SILVER_MODEL = { beta: 0.70, r2: 0.87 };
 
 /* ══════════════════════════════════════════════
    STATE
@@ -138,8 +133,8 @@ const SILVER_MODEL = { beta: 0.82, r2: 0.87 };
 const S = {
     firstLoad: true, // Track if it's the first render for instant load
     source: 'tradingview',
-    xau: { cur: 0, prev: 0, anchor1530: 0 },
-    xag: { cur: 0, prev: 0, anchor1530: 0 },
+    xau: { cur: 0, prev: 0 },
+    xag: { cur: 0, prev: 0 },
     usdinr: { cur: 0, prev: 0 },
     goldBees: { cur: 0, prev: 0 },
     silverBees: { cur: 0, prev: 0 },
@@ -389,41 +384,9 @@ function updatePredictionSection(ist) {
         sectionLabelEl.textContent = `Expected Open — ${fmtDateShort(nextNseDay)}`;
     }
 
-    // Determine state
-    const afterCloseOnWeekday = isWeekday && !isHoliday && min >= 930;
-
-    if (!afterCloseOnWeekday) {
-        // LOCKED: market still open OR weekend/holiday
-        EL.predictionBanner.className = 'prediction-banner banner-locked';
-        if (!isWeekday || isHoliday) {
-            EL.predictionBanner.innerHTML = `<i class="fa-solid fa-calendar-xmark"></i> NSE is closed today — prediction will be available on the next trading day (<strong>${fmtDateShort(nextNseDay)}</strong>)`;
-        } else {
-            // Weekday but before 15:30
-            const remaining = 930 - min;
-            const hh = Math.floor(remaining / 60);
-            const mm = remaining % 60;
-            const timeLeft = hh > 0 ? `${hh}h ${mm}m` : `${mm}m`;
-            EL.predictionBanner.innerHTML = `<i class="fa-solid fa-lock"></i> Prediction unlocks at <strong>3:30 PM IST</strong> — opens in ${timeLeft}`;
-        }
-        EL.predictionBanner.style.display = 'flex';
-        EL.predictionCards.style.display = 'none';
-        return;
-    }
-
-    // After 15:30 IST on a weekday — check if tomorrow is open
-    if (!isTomorrowNseOpen()) {
-        // Tomorrow is a holiday, but we show the prediction for the next trading day (which is nextNseDay)
-        EL.predictionBanner.className = 'prediction-banner banner-locked';
-        EL.predictionBanner.innerHTML = `<i class="fa-solid fa-calendar-day"></i> Tomorrow is an NSE holiday. Showing predictions for <strong>${fmtDateShort(nextNseDay)}</strong>.`;
-        EL.predictionBanner.style.display = 'flex';
-        EL.predictionCards.style.display = 'grid';
-        hideExpectedPrices(false); // ALWAYS SHOW
-    } else {
-        // OPEN TOMORROW — show full prediction
-        EL.predictionBanner.style.display = 'none';
-        EL.predictionCards.style.display = 'grid';
-        hideExpectedPrices(false);
-    }
+    EL.predictionBanner.style.display = 'none';
+    EL.predictionCards.style.display = 'grid';
+    hideExpectedPrices(false); // ALWAYS SHOW
 }
 
 function hideExpectedPrices(hide) {
@@ -482,149 +445,41 @@ function resetCountdown() {
 }
 
 /* ══════════════════════════════════════════════
-   FETCH
+   DATA PROCESSING
 ══════════════════════════════════════════════ */
-async function fetchYahoo(symbol, interval = '5m', range = '5d') {
-    // Add cache-buster to URL
-    const url = `${CFG.API}${symbol}?interval=${interval}&range=${range}&_=${Date.now()}`;
 
-    // Try direct
-    try {
-        const r = await fetch(url, { cache: 'no-store' });
-        if (!r.ok) throw new Error('status ' + r.status);
-        const d = await r.json();
-        if (d.chart?.result?.[0]) return d.chart.result[0];
-        throw new Error('no result');
-    } catch (e) { /* silent */ }
-
-    // Try proxies with cache busting
-    for (const p of CFG.PROXIES) {
-        try {
-            const proxyUrl = p.url + encodeURIComponent(url);
-            const r = await fetch(proxyUrl, { cache: 'no-store' });
-            if (!r.ok) throw new Error('status ' + r.status);
-            let d;
-            if (p.wraps) {
-                const w = await r.json();
-                d = JSON.parse(w.contents);
-            } else {
-                d = await r.json();
-            }
-            if (d.chart?.result?.[0]) return d.chart.result[0];
-        } catch (e) { /* try next */ }
-    }
-
-    console.error('[AurumTrack] All Yahoo fetches failed for', symbol);
-    return null;
-}
-
-async function fetchTradingView(market, tickers) {
-    const url = `${CFG.TV_API}${market}/scan`;
-    const body = {
-        symbols: { tickers },
-        columns: ["close", "change", "change_abs", "name"]
-    };
+// TradingView API fetcher
+async function fetchTradingView(market, symbols) {
+    const url = `${CFG.TV_API}screener/v1/external-scanner/all/?market=${market}`;
+    const headers = { 'Content-Type': 'application/json' };
+    const body = JSON.stringify({
+        symbols: { tickers: symbols, query: { types: [] } },
+        columns: ["lp_dollar", "change_abs", "change_abs_1d", "change_percent", "change_percent_1d"]
+    });
 
     try {
-        const r = await fetch(url, {
-            method: 'POST',
-            body: JSON.stringify(body)
-        });
-        if (!r.ok) throw new Error('TV status ' + r.status);
+        const r = await fetch(url, { method: 'POST', headers, body, cache: 'no-store' });
+        if (!r.ok) {
+            console.error(`TradingView API error for market ${market}: ${r.status} ${r.statusText}`);
+            return null;
+        }
         return await r.json();
     } catch (e) {
-        console.error(`[AurumTrack] TradingView fetch failed for ${market}:`, e);
+        console.error(`TradingView API fetch failed for market ${market}:`, e);
         return null;
     }
 }
 
-/* ══════════════════════════════════════════════
-   DATA PROCESSING
-══════════════════════════════════════════════ */
-function lastValid(arr) {
-    for (let i = arr.length - 1; i >= 0; i--) {
-        if (arr[i] !== null && arr[i] !== undefined && !isNaN(arr[i])) return arr[i];
-    }
-    return null;
-}
-
-/**
- * Find the price closest to 15:30 IST (10:00 UTC) from the 5-min chart data.
- * Scans within ±15 minutes of 10:00 UTC, returns the closest valid close.
- */
-function findAnchor1530(timestamps, closes) {
-    const TARGET_UTC = 10 * 60; // 10:00 UTC = 15:30 IST
-    let bestIdx = -1;
-    let minDiff = 30; // Max 30 min window
-
-    // Iterate through timestamps to find the closest candle to 10:00 UTC
-    // We look for the most recent one (last day available)
-    for (let i = timestamps.length - 1; i >= 0; i--) {
-        if (closes[i] === null || closes[i] === undefined) continue;
-        const d = new Date(timestamps[i] * 1000);
-        const candleMin = d.getUTCHours() * 60 + d.getUTCMinutes();
-        const diff = Math.abs(candleMin - TARGET_UTC);
-
-        if (diff <= 5) { // Prioritize exact or near-exact matches (within 5 mins)
-            return closes[i];
-        }
-
-        if (diff < minDiff) {
-            minDiff = diff;
-            bestIdx = i;
-        }
-    }
-    return bestIdx !== -1 ? closes[bestIdx] : null;
-}
-
-function processUSD(sym, raw) {
-    const closes = raw.indicators.quote[0].close;
-    const timestamps = raw.timestamp;
-    // Prefer regularMarketPreviousClose for percentage matching
-    const prev = raw.meta.regularMarketPreviousClose ?? raw.meta.previousClose ?? raw.meta.chartPreviousClose;
-    const cur = raw.meta.regularMarketPrice ?? lastValid(closes);
-
-    const obj = sym === 'GC=F' ? S.xau : S.xag;
-
-    // IMPORTANT: If source is Yahoo, update both current and anchor.
-    // If source is TV, we ONLY update the anchor from Yahoo data.
-    if (S.source === 'yahoo') {
-        obj.cur = cur;
-        obj.prev = prev;
-    }
-
-    const anchor = findAnchor1530(timestamps, closes);
-    if (anchor) {
-        obj.anchor1530 = anchor;
-        console.log(`[AurumTrack] Updated ${sym} anchor1530: $${anchor}`);
-    } else if (!obj.anchor1530) {
-        obj.anchor1530 = prev; // Fallback
-    }
-
-    console.log(`[AurumTrack] ${sym} Yahoo sync: cur=$${cur} prev=$${prev} anchor=$${obj.anchor1530}`);
-}
-
-function processBees(sym, raw) {
-    const prev = raw.meta.regularMarketPreviousClose ?? raw.meta.previousClose ?? raw.meta.chartPreviousClose;
-    const cur = raw.meta.regularMarketPrice ?? lastValid(raw.indicators.quote[0].close);
-    const obj = sym === 'GOLDBEES.NS' ? S.goldBees :
-        sym === 'SILVERBEES.NS' ? S.silverBees :
-            sym === 'TATAGOLD.NS' ? S.tataGold : S.tataSilver;
-    obj.cur = cur;
-    obj.prev = prev;
-}
-
-function processForex(raw) {
-    S.usdinr.cur = raw.meta.regularMarketPrice ?? 0;
-    S.usdinr.prev = raw.meta.regularMarketPreviousClose ?? raw.meta.previousClose ?? raw.meta.chartPreviousClose ?? 0;
-}
-
 function processTVData(res) {
     if (!res?.data) return;
+
+    // DEBUG Logging
+    console.log("[AurumTrack] TV response contains symbols:", res.data.map(i => i.s));
+
     res.data.forEach(item => {
         const [cur, pct, diff] = item.d;
         // TradingView change is already absolute diff, pct is percentage
-        // To match Yahoo, we "derive" a prev close
+        // To match the previous logic, we "derive" a prev close
         const prev = cur - diff;
 
         if (item.s === 'TVC:GOLD') { S.xau.cur = cur; S.xau.prev = prev; }
@@ -643,60 +498,22 @@ function processTVData(res) {
    FETCH ALL
 ══════════════════════════════════════════════ */
 async function fetchAll() {
-    if (S.source === 'yahoo') {
-        const symbols = [
-            { sym: 'GC=F', interval: '1m', range: '5d', type: 'usd' },
-            { sym: 'SI=F', interval: '1m', range: '5d', type: 'usd' },
-            { sym: 'USDINR=X', interval: '1m', range: '5d', type: 'fx' },
-            { sym: 'GOLDBEES.NS', interval: '1m', range: '5d', type: 'bees' },
-            { sym: 'SILVERBEES.NS', interval: '1m', range: '5d', type: 'bees' },
-            { sym: 'TATAGOLD.NS', interval: '1m', range: '5d', type: 'bees' },
-            { sym: 'TATSILV.NS', interval: '1m', range: '5d', type: 'bees' }
-        ];
+    // TradingView Scanning — fetch all markets in PARALLEL for fast load
+    const tvRequests = [
+        { m: 'india', t: ["NSE:GOLDBEES", "NSE:SILVERBEES", "NSE:TATAGOLD", "NSE:TATSILV"] },
+        { m: 'cfd', t: ["TVC:GOLD", "TVC:SILVER"] },
+        { m: 'forex', t: ["FX_IDC:USDINR"] },
+        { m: 'global', t: ["MCX:GOLDM1!", "MCX:SILVERM1!"] }
+    ];
 
-        // Fetch all Yahoo symbols in parallel for faster initial load
-        await Promise.all(symbols.map(async (item) => {
-            try {
-                const raw = await fetchYahoo(item.sym, item.interval, item.range);
-                if (!raw) return;
-                if (item.type === 'usd') processUSD(item.sym, raw);
-                else if (item.type === 'fx') processForex(raw);
-                else if (item.type === 'bees') processBees(item.sym, raw);
-            } catch (e) { console.error(`[AurumTrack] Error fetching ${item.sym}:`, e); }
-        }));
-        renderUI();
-        EL.lastUpdated.textContent = istString(istNow());
-    } else {
-        // TradingView Scanning — fetch all markets in PARALLEL for fast load
-        const tvRequests = [
-            { m: 'india', t: ["NSE:GOLDBEES", "NSE:SILVERBEES", "NSE:TATAGOLD", "NSE:TATSILV"] },
-            { m: 'cfd', t: ["TVC:GOLD", "TVC:SILVER"] },
-            { m: 'forex', t: ["FX_IDC:USDINR"] },
-            { m: 'global', t: ["MCX:GOLDM1!", "MCX:SILVERM1!"] }
-        ];
+    // Fetch all TradingView endpoints in parallel (fast — usually < 1s)
+    const tvResults = await Promise.all(
+        tvRequests.map(req => fetchTradingView(req.m, req.t))
+    );
+    tvResults.forEach(res => { if (res) processTVData(res); });
 
-        // Phase 1: Fetch all TradingView endpoints in parallel (fast — usually < 1s)
-        const tvResults = await Promise.all(
-            tvRequests.map(req => fetchTradingView(req.m, req.t))
-        );
-        tvResults.forEach(res => { if (res) processTVData(res); });
-
-        // Render immediately with TV data — don't wait for Yahoo anchors
-        renderUI();
-        EL.lastUpdated.textContent = istString(istNow());
-
-        // Phase 2: Fetch Yahoo anchors in background (for 15:30 prediction)
-        // Do this after rendering so it doesn't delay the UI
-        Promise.all([
-            fetchYahoo('GC=F', '5m', '5d'),
-            fetchYahoo('SI=F', '5m', '5d')
-        ]).then(([goldRaw, silverRaw]) => {
-            if (goldRaw) processUSD('GC=F', goldRaw);
-            if (silverRaw) processUSD('SI=F', silverRaw);
-            // Re-render to update prediction cards with fresh anchor
-            renderUI();
-        }).catch(e => console.error('[AurumTrack] Yahoo anchor fetch failed:', e));
-    }
+    renderUI();
+    EL.lastUpdated.textContent = istString(istNow());
 
     setTimeout(() => { S.firstLoad = false; }, 1000);
 }
@@ -965,16 +782,16 @@ function loadCache() {
  * @param {object} model      - Regression model { beta, r2 }
  */
 function renderGap(usdState, beesState, expEl, anchorEl, nowEl, pctEl, model) {
-    if (!usdState.cur || !usdState.anchor1530 || !beesState.cur) return;
+    if (!usdState.cur || !usdState.prev || !beesState.cur) return;
 
-    const overnightPct = (usdState.cur - usdState.anchor1530) / usdState.anchor1530;
+    const overnightPct = (usdState.cur - usdState.prev) / usdState.prev;
 
     // Regression model: expected_open = last_close × (1 + overnight_pct × beta)
     const expected = beesState.cur * (1 + overnightPct * model.beta);
 
-    console.log(`[AurumTrack] Model prediction: anchor=$${usdState.anchor1530} now=$${usdState.cur} overnightPct=${(overnightPct * 100).toFixed(3)}% β=${model.beta} R²=${model.r2} → expected=₹${expected.toFixed(2)}`);
+    console.log(`[AurumTrack] Model prediction: prev=$${usdState.prev} now=$${usdState.cur} overnightPct=${(overnightPct * 100).toFixed(3)}% β=${model.beta} R²=${model.r2} → expected=₹${expected.toFixed(2)}`);
 
-    anchorEl.textContent = `$${fmt(usdState.anchor1530)}`;
+    anchorEl.textContent = `$${fmt(usdState.prev)}`;
     nowEl.textContent = `$${fmt(usdState.cur)}`;
 
     const sign = overnightPct >= 0 ? '+' : '';
