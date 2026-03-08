@@ -450,11 +450,11 @@ function resetCountdown() {
 
 // TradingView API fetcher
 async function fetchTradingView(market, symbols) {
-    const url = `${CFG.TV_API}screener/v1/external-scanner/all/?market=${market}`;
-    const headers = { 'Content-Type': 'application/json' };
+    const url = `${CFG.TV_API}${market}/scan`;
+    const headers = { 'Content-Type': 'text/plain' };
     const body = JSON.stringify({
         symbols: { tickers: symbols, query: { types: [] } },
-        columns: ["lp_dollar", "change_abs", "change_abs_1d", "change_percent", "change_percent_1d"]
+        columns: ["close", "change", "change_abs"]
     });
 
     try {
@@ -477,10 +477,10 @@ function processTVData(res) {
     console.log("[AurumTrack] TV response contains symbols:", res.data.map(i => i.s));
 
     res.data.forEach(item => {
-        const [cur, pct, diff] = item.d;
-        // TradingView change is already absolute diff, pct is percentage
-        // To match the previous logic, we "derive" a prev close
-        const prev = cur - diff;
+        // Columns: [close, change_pct, change_abs]
+        const [cur, changePct, changeAbs] = item.d;
+        // Derive previous close from current price and absolute change
+        const prev = cur - changeAbs;
 
         if (item.s === 'TVC:GOLD') { S.xau.cur = cur; S.xau.prev = prev; }
         else if (item.s === 'TVC:SILVER') { S.xag.cur = cur; S.xag.prev = prev; }
@@ -745,6 +745,8 @@ function saveCache() {
             usdinr: S.usdinr,
             goldBees: S.goldBees,
             silverBees: S.silverBees,
+            tataGold: S.tataGold,
+            tataSilver: S.tataSilver,
             xauM: S.xauM,
             xagM: S.xagM
         }));
